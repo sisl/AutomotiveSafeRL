@@ -1,0 +1,6 @@
+*.jld
+**/log*
+**/.ipynb_checkpoints
+*.lab
+*.tra
+*.csv
