@@ -22,7 +22,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, mask::SafetyMask{GridWorld,
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
             i = state_index(mdp, s)
-            yval = 10 - yval
+            yval = mdp.size_y - yval
             println(o, "\\definecolor{currentcolor}{RGB}{$(r[i]),$(g[i]),$(b[i])}")
             println(o, "\\fill[currentcolor] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")
             if s == state
@@ -35,7 +35,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, mask::SafetyMask{GridWorld,
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
             i = state_index(mdp, s)
-            yval = 10 - yval + 1
+            yval = mdp.size_y - yval + 1
             c = [xval, yval] * sqsize - sqsize / 2
             C = [c'; c'; c']'
             RightArrow = [0 0 sqsize/2; twid -twid 0]
@@ -64,7 +64,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, mask::SafetyMask{GridWorld,
         end
     end
     println(o, "\\end{scope}");
-    println(o, "\\draw[black] grid(10,10);");
+    println(o, "\\draw[black] grid($(mdp.size_x), $(mdp.size_y));");
     TikzPicture(String(take!(o)), options="scale=1.25")
 end
 
@@ -90,7 +90,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, policy::Policy, state=GridW
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
             i = state_index(mdp, s)
-            yval = 10 - yval + 1
+            yval = mdp.size_y - yval + 1
             c = [xval, yval] * sqsize - sqsize / 2
             C = [c'; c'; c']'
             RightArrow = [0 0 sqsize/2; twid -twid 0]
@@ -117,6 +117,30 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, policy::Policy, state=GridW
         end
     end
     println(o, "\\end{scope}");
-    println(o, "\\draw[black] grid(10,10);");
+    println(o, "\\draw[black] grid($(mdp.size_x), $(mdp.size_y));");
+    TikzPicture(String(take!(o)), options="scale=1.25")
+end
+
+function POMDPModels.plot(mdp::GridWorld, V::Vector, state=GridWorldState(0,0,true))
+    o = IOBuffer()
+    sqsize = 1.0
+    twid = 0.05
+    (r, g, b) = colorval(V)
+    for s in iterator(states(mdp))
+        if !s.done
+            (xval, yval) = (s.x, mdp.size_y-s.y+1)
+            i = state_index(mdp, s)
+            yval = mdp.size_y - yval
+            println(o, "\\definecolor{currentcolor}{RGB}{$(r[i]),$(g[i]),$(b[i])}")
+            println(o, "\\fill[currentcolor] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")
+            if s == state
+                println(o, "\\fill[orange] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")
+            end
+            vs = @sprintf("%0.2f", V[i])
+            println(o, "\\node[above right] at ($((xval-1) * sqsize), $((yval) * sqsize)) {\$$(vs)\$};")
+        end
+    end
+    println(o, "\\draw[black] grid($(mdp.size_x), $(mdp.size_y));")
+    tikzDeleteIntermediate(false)
     TikzPicture(String(take!(o)), options="scale=1.25")
 end
