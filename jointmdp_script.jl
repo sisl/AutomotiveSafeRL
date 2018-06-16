@@ -51,7 +51,7 @@ rand_pol = RandomMaskedPOMDPPolicy(joint_mask, pomdp, rng)
 
 
 
-max_steps = 750000
+max_steps = 500000
 eps_fraction = 0.5 
 eps_end = 0.01 
 solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction, eps_end = eps_end,
@@ -69,13 +69,13 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, joint_mask),
                        evaluation_policy = masked_evaluation(joint_mask),
                        verbose = true,
-                       logdir = "jointmdp-log/log2",
+                       logdir = "jointmdp-log/log4",
                        rng = rng)
 
-
+pomdp.action_cost = -0.01
 env = POMDPEnvironment(pomdp)
 policy = solve(solver, env)
-save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
+DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
 masked_policy = MaskedDQNPolicy(pomdp, policy, joint_mask)
 
 # evaluate resulting policy

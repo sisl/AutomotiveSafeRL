@@ -27,8 +27,8 @@ pomdp = UrbanPOMDP(env=env,
                    lidar=false,
                    pos_obs_noise = 0., # fully observable
                    vel_obs_noise = 0.);
-pomdp.collision_cost = -1.
-pomdp.goal_reward = 0.1
+# pomdp.collision_cost = -1.
+# pomdp.goal_reward = 0.1
 
 
 max_steps = 500000

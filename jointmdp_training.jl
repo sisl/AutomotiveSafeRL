@@ -34,7 +34,7 @@ pomdp = UrbanPOMDP(env=env,
 
 #### Training using DQN in high fidelity environment
 
-max_steps = 750000
+max_steps = 500000
 eps_fraction = 0.5 
 eps_end = 0.01 
 solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction, eps_end = eps_end,
@@ -50,17 +50,18 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        dueling = true,
                        prioritized_replay = true,
                        verbose = true,
-                       logdir = "jointmdp-log/log_nm4",
+                       logdir = "jointmdp-log/log_nm6",
                        rng = rng)
 
 
+# pomdp.action_cost = -0.01
 env = POMDPEnvironment(pomdp)
 policy = solve(solver, env)
-save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
+DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
 # evaluate resulting policy
 println("\n EVALUATE TRAINED POLICY \n")
-@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, n_ep=10000, max_steps=100, rng=rng);
-print_summary(rewards_mask, steps_mask, violations_mask)
+@time rewards, steps, violations = evaluation_loop(pomdp, policy, n_ep=10000, max_steps=100, rng=rng);
+print_summary(rewards, steps, violations)
 
 # expected results
 # Summary for 10000 episodes:
@@ -73,3 +74,40 @@ print_summary(rewards_mask, steps_mask, violations_mask)
 # Average reward: 0.286
 # Average # of steps: 34.757
 # Average # of violations: 6.190
+
+rng = MersenneTwister(1)
+using AutomotivePOMDPs
+using MDPModelChecking
+using GridInterpolations, StaticArrays, POMDPs, POMDPToolbox, AutoViz, AutomotiveDrivingModels, Reel
+using DiscreteValueIteration, DeepQLearning, DeepRL
+using ProgressMeter, Parameters, JLD
+
+include("masking.jl")
+include("util.jl")
+include("render_helpers.jl")
+include("masked_dqn.jl")
+
+params = UrbanParams(nlanes_main=1,
+                     crosswalk_pos =  [VecSE2(6, 0., pi/2), VecSE2(-6, 0., pi/2), VecSE2(0., -5., 0.)],
+                     crosswalk_length =  [14.0, 14., 14.0],
+                     crosswalk_width = [4.0, 4.0, 3.1],
+                     stop_line = 22.0)
+env = UrbanEnv(params=params)
+
+pomdp = UrbanPOMDP(env=env,
+                   ego_goal = LaneTag(2, 1),
+                   max_cars=1, 
+                   max_peds=1, 
+                   car_birth=0.3, 
+                   ped_birth=0.7, 
+                   obstacles=false, # no fixed obstacles
+                   lidar=false,
+                   pos_obs_noise = 0., # fully observable
+                   vel_obs_noise = 0.)
+
+env = POMDPEnvironment(pomdp)
+
+policy = DeepQLearning.restore(problem_file="jointmdp-log/log_nm6/problem.jld", weights_file="jointmdp-log/log_nm6/weights.jld");
+println("\n EVALUATE TRAINED POLICY \n")
+@time rewards, steps, violations = evaluation_loop(pomdp, policy, n_ep=10000, max_steps=100, rng=rng);
+print_summary(rewards, steps, violations)

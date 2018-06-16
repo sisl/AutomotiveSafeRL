@@ -27,7 +27,7 @@ function evaluation_loop(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_s
         hist = simulate(hr, pomdp, policy, up, b0, s0);
         rewards[ep] = discounted_reward(hist)
         steps[ep] = n_steps(hist)
-        violations[ep] = sum(hist.reward_hist .< 0.) #+ Int(n_steps(hist) >= max_steps)
+        violations[ep] = is_crash(hist.state_hist[end])#sum(hist.reward_hist .<= -1.) #+ Int(n_steps(hist) >= max_steps)
     end
     return rewards, steps, violations
 end
