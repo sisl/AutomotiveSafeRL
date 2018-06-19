@@ -12,9 +12,9 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(pos_res=6.0, vel_res=3.)
-# mdp = PedCarMDP()
+#mdp = PedCarMDP(pos_res=6.0, vel_res=3.)
+mdp = PedCarMDP()
 
-solver = ParallelValueIterationSolver()
+solver = ParallelValueIterationSolver(n_procs=56, max_iterations=2)
 
 policy = solve(solver, mdp, verbose=true)
