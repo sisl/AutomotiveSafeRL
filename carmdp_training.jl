@@ -9,7 +9,6 @@ using DiscreteValueIteration
 using ProgressMeter, Parameters, JLD
 
 include("util.jl")
-include("masking.jl")
 
 params = UrbanParams(nlanes_main=1,
                      crosswalk_pos =  [VecSE2(6, 0., pi/2), VecSE2(-6, 0., pi/2), VecSE2(0., -5., 0.)],
@@ -21,13 +20,13 @@ pomdp = UrbanPOMDP(env=env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=0, 
-                   car_birth=0.3, 
+                   car_birth=0.7, 
                    ped_birth=0.7, 
                    obstacles=false, # no fixed obstacles
                    lidar=false,
                    pos_obs_noise = 0., # fully observable
                    vel_obs_noise = 0.);
-# pomdp.collision_cost = -1.
+pomdp.collision_cost = -1.
 # pomdp.goal_reward = 0.1
 
 
@@ -47,7 +46,7 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        dueling = true,
                        prioritized_replay = true,
                        verbose = true,
-                       logdir = "carmdp-log/log_nm4",
+                       logdir = "carmdp-log/log_nm8",
                        rng = rng)
 
 policy = solve(solver, POMDPEnvironment(pomdp))

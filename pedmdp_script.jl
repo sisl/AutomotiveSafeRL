@@ -3,7 +3,7 @@ using AutomotivePOMDPs
 using MDPModelChecking
 using GridInterpolations, StaticArrays, POMDPs, POMDPToolbox, AutoViz, AutomotiveDrivingModels, Reel
 using DeepQLearning, DeepRL
-using DiscreteValueIteration
+using DiscreteValueIteration, LocalApproximationValueIteration
 using ProgressMeter, Parameters, JLD
 
 include("util.jl")
@@ -20,51 +20,51 @@ mdp = PedMDP(env = env, pos_res=1., vel_res=1., ped_birth=0.7, ped_type=VehicleD
 
 ### MODEL CHECKING
 
-# labels = labeling(mdp)
+labels = labeling(mdp)
 
-# @printf("\n")
-# @printf("spatial resolution %2.1f m \n", mdp.pos_res)
-# @printf("pedestrian velocity resolution %2.1f m/s \n", mdp.vel_ped_res)
-# @printf("car velocity resolution %2.1f m/s \n", mdp.vel_res)
-# @printf("number of states %d \n", n_states(mdp))
-# @printf("number of actions %d \n", n_actions(mdp))
-# @printf("\n")
+@printf("\n")
+@printf("spatial resolution %2.1f m \n", mdp.pos_res)
+@printf("pedestrian velocity resolution %2.1f m/s \n", mdp.vel_ped_res)
+@printf("car velocity resolution %2.1f m/s \n", mdp.vel_res)
+@printf("number of states %d \n", n_states(mdp))
+@printf("number of actions %d \n", n_actions(mdp))
+@printf("\n")
 
-# property = "Pmax=? [ (!\"crash\") U \"goal\"]" 
-# threshold = 0.9999
-# @printf("Spec: %s \n", property)
-# @printf("Threshold: %f \n", threshold)
+property = "Pmax=? [ (!\"crash\") U \"goal\"]" 
+threshold = 0.9999
+@printf("Spec: %s \n", property)
+@printf("Threshold: %f \n", threshold)
 
-overwrite = false
+overwrite = true
 
-# println("Model Checking...")
-# result = model_checking(mdp, labels, property, transition_file_name="pedmdp.tra", labels_file_name="pedmdp.lab", overwrite = overwrite)
+println("Model Checking...")
+result = model_checking(mdp, labels, property, transition_file_name="pedmdp1.tra", labels_file_name="pedmdp1.lab", overwrite = overwrite)
 
 ### MASK
 
 mask = nothing
-mask_file = "pedmask.jld"
-if isfile(mask_file) && !overwrite
-    println("Loading safety mask from pedmask.jld")
+mask_file = "pedmask_new1.jld"
+if isfile(mask_file)
+    println("Loading safety mask from $mask_file")
     mask_data = JLD.load(mask_file)
-    mask = mask_data["mask"]
-    @printf("Mask threshold %f \n", mask.threshold)
+    mask = SafetyMask(mdp, StormPolicy(mdp, mask_data["risk_vec"], mask_data["risk_mat"]), threshold)
+    @printf("Mask threshold %f", mask.threshold)
 else
     println("Computing safety mask...")
-    mask = SafetyMask(mdp, result, threshold)
-    JLD.save(mask_file, "mask", mask)
-    println("Mask saved to pedmask.jld")
+    mask = SafetyMask(mdp, StormPolicy(mdp, result), threshold)
+    JLD.save(mask_file, "risk_vec", mask.policy.risk_vec, "risk_mat", mask.policy.risk_mat)
+    println("Mask saved to $mask_file")
 end
 
 
 #### Evaluate mask 
 
 
-rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng)
+# rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng)
 # @time rewards_mask, steps_mask, violations_mask = evaluation_loop(mdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
 # print_summary(rewards_mask, steps_mask, violations_mask)
 
-### EVALUATE IN HIGH FIDELITY ENVIRONMENT
+# ### EVALUATE IN HIGH FIDELITY ENVIRONMENT
 
 pomdp = UrbanPOMDP(env=env,
                    ego_goal = LaneTag(2, 1),
@@ -76,16 +76,15 @@ pomdp = UrbanPOMDP(env=env,
                    lidar=false,
                    pos_obs_noise = 0., # fully observable
                    vel_obs_noise = 0.);
-
+pomdp.action_cost = -0.01
 # println("EVALUATING IN HIGH FIDELITY ENVIRONMENT")
 
+# rand_pol = RandomMaskedPOMDPPolicy(mask, pomdp, rng);
 # @time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, rand_pol, n_ep=1000, max_steps=300, rng=rng);
 # print_summary(rewards_mask, steps_mask, violations_mask)
 
 
 #### Training using DQN in high fidelity environment
-
-
 
 max_steps = 500000
 eps_fraction = 0.5 
@@ -105,16 +104,16 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, mask),
                        evaluation_policy = masked_evaluation(mask),
                        verbose = true,
-                       logdir = "pedmdp-log/log5",
+                       logdir = "pedmdp-log/log70",
                        rng = rng)
 
-
+pomdp.action_cost = -0.01
 env = POMDPEnvironment(pomdp)
 policy = solve(solver, env)
 masked_policy = MaskedDQNPolicy(pomdp, policy, mask)
 
 
-# evaluate resulting policy
+# # evaluate resulting policy
 @time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, masked_policy, n_ep=10000, max_steps=100, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
 

@@ -1,0 +1,16 @@
+HOA: v1
+name: "!crash U goal"
+States: 2
+Start: 1
+AP: 2 "crash" "goal"
+acc-name: Buchi
+Acceptance: 1 Inf(0)
+properties: trans-labels explicit-labels state-acc deterministic
+properties: stutter-invariant terminal
+--BODY--
+State: 0 {0}
+[t] 0
+State: 1
+[1] 0
+[!0&!1] 1
+--END--

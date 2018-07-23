@@ -12,9 +12,9 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
              
-mdp = PedMDP(env = env, vel_res=2.0, pos_res=3.0);
+mdp = CarMDP(env = env, vel_res=2.0, pos_res=3.0);
 
-function MDPModelChecking.labels(mdp::PedMDP, s::PedMDPState)
+function MDPModelChecking.labels(mdp::CarMDP, s::CarMDPState)
     if s.crash
         return ["crash"]
     elseif s.ego.posF.s >= get_end(mdp.env.roadway[mdp.ego_goal]) &&
@@ -31,5 +31,5 @@ solver = ModelCheckingSolver(property=property, solver=ValueIterationSolver())
 
 policy = solve(solver, mdp, verbose=true)
 
-JLD.save("pedmdp.jld", "policy", policy)
-JLD.save("ped_acc_states.jld", "accepting_states", policy.mdp.accepting_states)
+JLD.save("carmdp.jld", "policy", policy)
+JLD.save("car_acc_states.jld", "accepting_states", policy.mdp.accepting_states)

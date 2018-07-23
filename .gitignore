@@ -1,3 +1,4 @@
+*.out
 *.jld
 **/log*
 **/.ipynb_checkpoints
