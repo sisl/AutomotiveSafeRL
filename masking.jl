@@ -4,18 +4,18 @@
 #     return safe_actions(pomdp, mask, s, ped_id)
 # end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, CarMDPAction}, o::UrbanObs, car_id=2)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, P}, o::UrbanObs) where P <: Policy
     s = obs_to_scene(pomdp, o)
-    return safe_actions(pomdp, mask, s, car_id)
+    return safe_actions(pomdp, mask, s, CAR_ID)
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, CarMDPAction}, o::Array{Float64, 2}, car_id=2)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, P}, o::Array{Float64, 2}) where P <: Policy
     d, dd = size(o)
     @assert dd == 1
-    return safe_actions(mask, o[:], car_id)
+    return safe_actions(mask, o[:], CAR_ID)
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, CarMDPAction}, s::UrbanState, car_id=2)    
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, P}, s::UrbanState, car_id::Int64) where P <: Policy
     s_mdp = get_mdp_state(mask.mdp, pomdp, s, car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
@@ -29,15 +29,16 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMD
 #     p_sa = minimum(p_sa_itp, 1)
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
-        si = state_index(mask.mdp, ss)
-        p_sa += itp_weights[i]*mask.risk_mat[si,:]
+        vals = value_vector(mask.policy, ss)
+        p_sa += itp_weights[i]*vals
     end
-    safe_acts = CarMDPAction[]
+    safe_acts = UrbanAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
+    action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, mask.actions[indmax(p_sa)])
+        push!(safe_acts, action_space[indmax(p_sa)])
     else
-        for (j, a) in enumerate(mask.actions)
+        for (j, a) in enumerate(action_space)
             if p_sa[j] > mask.threshold
                 push!(safe_acts, a)
             end
@@ -58,37 +59,38 @@ end
 #     return safe_actions(mask, s, ped_id)
 # end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedMDP, PedMDPAction}, o::UrbanObs, ped_id=101)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedMDP, P}, o::UrbanObs) where P <: Policy
     s = obs_to_scene(pomdp, o)
-    return safe_actions(mask, s, ped_id)
+    return safe_actions(mask, s, PED_ID)
 end
 
 
-function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction}, o::Array{Float64, 2}, ped_id=101)
+function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, P}, o::Array{Float64, 2}) where P <: Policy
     d, dd = size(o)
     @assert dd == 1
-    return safe_actions(mask, o[:], ped_id)
+    return safe_actions(mask, o[:])
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedMDP, PedMDPAction},s::UrbanState, ped_id=101)    
-    return safe_actions(mask, s, ped_id)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedMDP, P},s::UrbanState) where P <: Policy   
+    return safe_actions(mask, s, PED_ID)
 end
 
-function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction},s::UrbanState, ped_id=101)    
+function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, P}, s::UrbanState, ped_id) where P <: Policy
     s_mdp = get_mdp_state(mask.mdp, s, ped_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
-        si = state_index(mask.mdp, ss)
-        p_sa += itp_weights[i]*mask.risk_mat[si,:]
+        vals = value_vector(mask.policy, ss)
+        p_sa += itp_weights[i]*vals
     end
-    safe_acts = PedMDPAction[]
+    safe_acts = UrbanAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
+    action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, mask.actions[indmax(p_sa)])
+        push!(safe_acts, action_space[indmax(p_sa)])
     else
-        for (j, a) in enumerate(mask.actions)
+        for (j, a) in enumerate(action_space)
             if p_sa[j] > mask.threshold
                 push!(safe_acts, a)
             end
@@ -97,8 +99,64 @@ function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction},s:
     return safe_acts
 end
 
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, o::UrbanObs) where P <: Policy
+    s = obs_to_scene(pomdp, o)
+    return safe_actions(pomdp, mask, s, PED_ID, CAR_ID)
+end
 
-function POMDPToolbox.action_info{M}(policy::MaskedEpsGreedyPolicy{M}, s)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, o::Array{Float64, 2}) where P <: Policy
+    d, dd = size(o)
+    @assert dd == 1
+    return safe_actions(mask, o[:], PED_ID, CAR_ID)
+end
+
+# function MDPModelChecking.value_vector(policy::ValueIterationPolicy, s::PedCarMDPState)
+#     if !s.crash && isterminal(policy.mdp, s)
+#         return ones(n_actions(policy.mdp))
+#     else
+#         si = state_index(policy.mdp, s)
+#         return policy.qmat[si, :]
+#     end
+# end
+
+# function MDPModelChecking.value_vector(policy::LocalApproximationValueIterationPolicy, s::PedCarMDPState)
+#     if !s.crash && isterminal(policy.mdp, s)
+#         return ones(n_actions(policy.mdp))
+#     else
+#         q = zeros(n_actions(policy.mdp))
+#         for i = 1:n_actions(policy.mdp)
+#             q[i] = action_value(policy, s, policy.action_map[i])
+#         end
+#         return q
+#     end
+# end
+
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
+    s_mdp = get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
+    itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
+    action_space = actions(mask.mdp)
+    # compute risk vector
+    p_sa = zeros(n_actions(mask.mdp))
+    for (i, ss) in enumerate(itp_states)
+        vals = value_vector(mask.policy, ss)
+        p_sa += itp_weights[i]*vals
+    end
+    # println(p_sa)
+    safe_acts = UrbanAction[]
+    sizehint!(safe_acts, n_actions(mask.mdp))
+    if maximum(p_sa) <= mask.threshold
+        push!(safe_acts, action_space[indmax(p_sa)])
+    else
+        for (j, a) in enumerate(action_space)
+            if p_sa[j] > mask.threshold
+                push!(safe_acts, a)
+            end
+        end
+    end
+    return safe_acts
+end
+
+function POMDPToolbox.action_info(policy::MaskedEpsGreedyPolicy{M}, s) where M <: SafetyMask
     return action(policy, s), [safe_actions(policy.mask, s), s]
 end
 

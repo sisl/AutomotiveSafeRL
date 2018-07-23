@@ -4,6 +4,17 @@ using MDPModelChecking
 using GridInterpolations, StaticArrays, POMDPs, POMDPToolbox, AutoViz, AutomotiveDrivingModels, Reel
 using DiscreteValueIteration, DeepQLearning, DeepRL
 using ProgressMeter, Parameters, JLD
+using ArgParse
+s = ArgParseSettings()
+@add_arg_table s begin
+    "--log"
+        arg_type=String
+        default="log"
+    "--goal"
+        arg_type=Float64
+        default=1.0
+end
+parsed_args = parse_args(ARGS, s)
 
 include("masking.jl")
 include("util.jl")
@@ -20,22 +31,26 @@ env = UrbanEnv(params=params)
 ped_mdp = PedMDP(env = env, vel_res=1., pos_res=1., ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0), ped_birth=0.7)
 car_mdp = CarMDP(env = env, vel_res=1., pos_res=2.)
 
-ped_mask_file = "pedmask.jld"
-car_mask_file = "carmask.jld"
-ped_mask = load(ped_mask_file)["mask"]
-car_mask = load(car_mask_file)["mask"]
+threshold = 0.9999
+ped_mask_file = "pedmask_new1.jld"
+car_mask_file = "carmask_new1.jld"
+ped_mask_data = load(ped_mask_file)
+car_mask_data = load(car_mask_file)
+ped_mask = SafetyMask(ped_mdp, StormPolicy(ped_mdp, ped_mask_data["risk_vec"], ped_mask_data["risk_mat"]), threshold)
+car_mask = SafetyMask(car_mdp, StormPolicy(car_mdp, car_mask_data["risk_vec"], car_mask_data["risk_mat"]), threshold);
 
 pomdp = UrbanPOMDP(env=env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
                    car_birth=0.3, 
-                   ped_birth=0.7, 
+                   ped_birth=0.3, 
                    obstacles=false, # no fixed obstacles
                    lidar=false,
                    pos_obs_noise = 0., # fully observable
                    vel_obs_noise = 0.)
-
+pomdp.goal_reward = parsed_args["goal"]
+pomdp.action_cost = -0.01
 masks = SafetyMask[ped_mask, car_mask]
 ids = [101, 2]
 joint_mask = JointMask([ped_mdp, car_mdp], masks, ids)
@@ -69,7 +84,7 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, joint_mask),
                        evaluation_policy = masked_evaluation(joint_mask),
                        verbose = true,
-                       logdir = "jointmdp-log/log4",
+                       logdir = "jointmdp-log/"*parsed_args["log"],
                        rng = rng)
 
 pomdp.action_cost = -0.01
