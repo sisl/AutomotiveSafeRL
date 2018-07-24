@@ -8,14 +8,14 @@ using NearestNeighbors, StatsBase
 
 function sample_points(mdp::PedCarMDP, n_samples::Int64, rng::AbstractRNG)
     # sample points for the approximator
-    state_space = states(mdp)
     n_routes = 4
     n_features = 4
     nd = n_features*3 + n_routes + 1 
-    sampled_states = sample(rng, 1:length(state_space), n_samples, replace=false)
+    sampled_states = sample(rng, 1:n_states(mdp), n_samples, replace=false)
     points = Vector{SVector{nd, Float64}}(n_samples)
-    for (i, si) in enumerate(sampled_states)
-        z = convert_s(Vector{Float64}, state_space[si], mdp)
+    for i=1:length(sampled_states)
+        s = ind2state(mdp, sampled_states[i])
+        z = convert_s(Vector{Float64}, s, mdp)
         points[i] = SVector{nd, Float64}(z...)
     end
     return points, sampled_states
@@ -25,10 +25,10 @@ function convert_states(mdp::PedCarMDP, sampled_states::Vector{Int64})
     n_routes = 4
     n_features = 4
     nd = n_features*3 + n_routes + 1
-    state_space = states(mdp)
     points = Vector{SVector{nd, Float64}}(length(sampled_states))
     for (i, si) in enumerate(sampled_states)
-        z = convert_s(Vector{Float64}, state_space[si], mdp)
+        s = ind2state(mdp, si)
+        z = convert_s(Vector{Float64}, s, mdp)
         points[i] = SVector{nd, Float64}(z...)
     end
     return points
@@ -54,14 +54,14 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(env = env, pos_res=3., vel_res=2., ped_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
+mdp = PedCarMDP(env = env, pos_res=1., vel_res=1., ped_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
 
 # reachability analysis
 mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-N_SAMPLES = 200000
+N_SAMPLES = 10000
 k = 6
 knnfa = nothing
 sampled_states = nothing
