@@ -33,6 +33,18 @@ function convert_states(mdp::PedCarMDP, sampled_states::Vector{Int64})
     end
     return points
 end
+
+function set_terminal_costs!(mdp::PedCarMDP, knnfa::LocalNNFunctionApproximator)
+    for (i, pt) in enumerate(knnfa.nnpoints)
+        s = convert_s(PedCarMDPState, pt, mdp)
+        if !s.crash && isterminal(mdp, s) 
+            knnfa.nnvalues[i] = 1.0
+        elseif s.crash 
+            knnfa.nnvalues[i] = 0.0
+        end
+    end
+end
+
 rng = MersenneTwister(1)
 
 params = UrbanParams(nlanes_main=1,
@@ -42,7 +54,7 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(env = env, pos_res=2., vel_res=2., ped_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
+mdp = PedCarMDP(env = env, pos_res=3., vel_res=2., ped_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
 
 # reachability analysis
 mdp.collision_cost = 0.
@@ -65,9 +77,10 @@ else
     points, sampled_states = sample_points(mdp, N_SAMPLES, rng)
     nntree = KDTree(points)
     knnfa = LocalNNFunctionApproximator(nntree, points, k)
+    set_terminal_costs!(mdp, knnfa)
 end
 
-approx_solver = LocalApproximationValueIterationSolver(knnfa, verbose=true, max_iterations=40, is_mdp_generative=false)
+approx_solver = LocalApproximationValueIterationSolver(knnfa, verbose=true, max_iterations=40, is_mdp_generative=false, terminal_costs_set=true)
 policy = solve(approx_solver, mdp)
 
 JLD.save(policy_file, "sampled_states", sampled_states, "values", policy.interp.nnvalues ) 
