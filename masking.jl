@@ -119,17 +119,22 @@ end
 #     end
 # end
 
-# function MDPModelChecking.value_vector(policy::LocalApproximationValueIterationPolicy, s::PedCarMDPState)
-#     if !s.crash && isterminal(policy.mdp, s)
-#         return ones(n_actions(policy.mdp))
-#     else
-#         q = zeros(n_actions(policy.mdp))
-#         for i = 1:n_actions(policy.mdp)
-#             q[i] = action_value(policy, s, policy.action_map[i])
-#         end
-#         return q
-#     end
-# end
+function MDPModelChecking.safe_actions(mask::SafetyMask{M, LocalApproximationValueIterationPolicy}, o::Array{Float64}) where M <: Union{PedMDP, PedCarMDP}
+    s = convert_s(state_type(mask.mdp), o, mask.mdp)
+    return safe_actions(mask, s)
+end
+
+function MDPModelChecking.value_vector(policy::LocalApproximationValueIterationPolicy, s::S) where S <: Union{PedMDPState, PedCarMDPState}
+    if !s.crash && isterminal(policy.mdp, s)
+        return ones(n_actions(policy.mdp))
+    else
+        q = zeros(n_actions(policy.mdp))
+        for i = 1:n_actions(policy.mdp)
+            q[i] = action_value(policy, s, policy.action_map[i])
+        end
+        return q
+    end
+end
 
 function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
     s_mdp = get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
