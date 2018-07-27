@@ -32,13 +32,13 @@ pomdp.collision_cost = 0.
 pomdp.γ = 1.
 pomdp.goal_reward = 1.
 
-max_steps = 500000
-eps_fraction = 0.5 
+max_steps = 5000000
+eps_fraction = 0.8 
 eps_end = 0.01 
 solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction, eps_end = eps_end,
                        lr = 0.0001,                    
                        batch_size = 32,
-                       target_update_freq = 5000,
+                       target_update_freq = 7000,
                        max_episode_length = 50,
                        train_start = 40000,
                        buffer_size = 400000,
@@ -48,7 +48,7 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        dueling = true,
                        prioritized_replay = true,
                        verbose = true,
-                       logdir = "mc-log/log1",
+                       logdir = "mc-log/log3",
                        rng = rng)
 
 env = POMDPEnvironment(pomdp)

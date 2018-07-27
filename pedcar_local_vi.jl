@@ -61,11 +61,11 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-N_SAMPLES = 10000
+N_SAMPLES = 20000
 k = 6
 knnfa = nothing
 sampled_states = nothing
-policy_file = "pc_lavi_fine.jld"
+policy_file = "lavi1.jld"
 if isfile(policy_file)
     data = load(policy_file)
     sampled_states = data["sampled_states"]
