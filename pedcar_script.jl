@@ -45,6 +45,10 @@ pomdp = UrbanPOMDP(env=env,
                    vel_obs_noise = 0.,
                    ego_start=20);
 
+println("\nEvaluation in continuous environment: \n")
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
+print_summary(rewards_mask, steps_mask, violations_mask)
+
 
 max_steps = 500000
 eps_fraction = 0.5 
@@ -64,7 +68,7 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, mask),
                        evaluation_policy = masked_evaluation(mask),
                        verbose = true,
-                       logdir = "joint-log/log2",
+                       logdir = "joint-log/log3",
                        rng = rng)
 
 env = POMDPEnvironment(pomdp)
