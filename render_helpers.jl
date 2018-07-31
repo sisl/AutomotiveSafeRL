@@ -58,6 +58,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
 end
 
 function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Any}, mask::SafetyMask;
+                        interp=true,
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 17.))
     duration = length(states)*pomdp.ΔT
@@ -66,9 +67,14 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
         frame_index = Int(floor(t/dt)) + 1
         scene = states[frame_index] #state2scene(mdp, states[frame_index])
         safe_acts = [a.acc for a in safe_actions[frame_index]]
+        if !interp
+            itp_overlay = SceneOverlay[]
+        else
+            itp_overlay=SceneOverlay[InterpolationOverlay(mask.mdp, pomdp)]
+        end
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays,InterpolationOverlay(mask.mdp, pomdp),
+                cat(1, overlays,itp_overlay...,
                                 TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,6.),

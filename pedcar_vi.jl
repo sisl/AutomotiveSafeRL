@@ -1,7 +1,7 @@
-@everywhere begin
-    using POMDPs, POMDPToolbox, DiscreteValueIteration
-    using AutomotivePOMDPs, AutomotiveDrivingModels
-end
+N_PROCS=56
+addprocs(N_PROCS)
+using POMDPs, POMDPToolbox, DiscreteValueIteration
+using AutomotivePOMDPs, AutomotiveDrivingModels
 using JLD
 rng = MersenneTwister(1)
 
@@ -18,18 +18,18 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-solver = ParallelValueIterationSolver(n_procs=56, max_iterations=5, belres=1e-4)
-
-policy = ValueIterationPolicy(mdp, include_Q=true)
-if isfile("pc_util_f.jld")
+solver = ParallelSynchronousValueIterationSolver(n_procs=N_PROCS, max_iterations=5, belres=1e-4, include_Q=true, verbose=true)
+policy_file = "pc_util_sync.jld"
+#policy = ValueIterationPolicy(mdp, include_Q=true)
+if isfile(policy_file)
   data = load("pc_util_f.jld")
   policy.util = data["util"]
   policy.qmat = data["qmat"]
   policy.policy = data["pol"]
 end
-policy = solve(solver, mdp, policy, verbose=true)
-JLD.save("pc_util_f.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
-policy = solve(solver, mdp, policy, verbose=true) # resume
+policy = solve(solver, mdp)
+JLD.save(policy_file, "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
+#policy = solve(solver, mdp, policy, verbose=true) # resume
 
 using JLD
 JLD.save("pc_util_f.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)

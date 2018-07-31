@@ -45,8 +45,8 @@ pomdp = UrbanPOMDP(env=env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
-                   car_birth=0.3, 
-                   ped_birth=0.3, 
+                   car_birth=0.7, 
+                   ped_birth=0.7, 
                    obstacles=false, # no fixed obstacles
                    lidar=false,
                    pos_obs_noise = 0., # fully observable

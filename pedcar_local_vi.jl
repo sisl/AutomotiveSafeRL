@@ -61,11 +61,11 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-N_SAMPLES = 20000
-k = 6
+N_SAMPLES = 100000
+k = 20
 knnfa = nothing
 sampled_states = nothing
-policy_file = "lavi1.jld"
+policy_file = "lavi_20neighb100k.jld"
 if isfile(policy_file)
     data = load(policy_file)
     sampled_states = data["sampled_states"]
@@ -77,10 +77,10 @@ else
     points, sampled_states = sample_points(mdp, N_SAMPLES, rng)
     nntree = KDTree(points)
     knnfa = LocalNNFunctionApproximator(nntree, points, k)
-    set_terminal_costs!(mdp, knnfa)
+    #set_terminal_costs!(mdp, knnfa)
 end
 
-approx_solver = LocalApproximationValueIterationSolver(knnfa, verbose=true, max_iterations=40, is_mdp_generative=false, terminal_costs_set=true)
+approx_solver = LocalApproximationValueIterationSolver(knnfa, verbose=true, max_iterations=40, is_mdp_generative=false)
 policy = solve(approx_solver, mdp)
 
 JLD.save(policy_file, "sampled_states", sampled_states, "values", policy.interp.nnvalues ) 

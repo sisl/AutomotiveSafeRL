@@ -29,7 +29,7 @@ vi_data = JLD.load("pc_util_f.jld")
     end
 end
 policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
-threshold = 0.99
+threshold = 0.999
 mask = SafetyMask(mdp, policy, threshold)
 
 
@@ -44,12 +44,13 @@ pomdp = UrbanPOMDP(env=env,
                    pos_obs_noise = 0., # fully observable
                    vel_obs_noise = 0.,
                    ego_start=20);
-
+rand_pol = RandomMaskedPOMDPPolicy(mask, pomdp, rng);
 println("\nEvaluation in continuous environment: \n")
-@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, rand_pol, n_ep=1000, max_steps=100, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
+flush(STDOUT)
 
-
+pomdp.action_cost = -0.01
 max_steps = 500000
 eps_fraction = 0.5 
 eps_end = 0.01 
@@ -68,14 +69,15 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, mask),
                        evaluation_policy = masked_evaluation(mask),
                        verbose = true,
-                       logdir = "joint-log/log3",
+                       logdir = "joint-log/log6",
                        rng = rng)
 
 env = POMDPEnvironment(pomdp)
 policy = solve(solver, env)
 masked_policy = MaskedDQNPolicy(pomdp, policy, mask)
-
+DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
 
 # evaluate resulting policy
 @time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, masked_policy, n_ep=10000, max_steps=100, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
+flush(STDOUT)
