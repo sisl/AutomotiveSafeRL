@@ -29,7 +29,7 @@ vi_data = JLD.load("pc_util_f.jld")
     end
 end
 policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
-threshold = 0.999
+threshold = 0.99
 mask = SafetyMask(mdp, policy, threshold)
 
 
@@ -69,7 +69,7 @@ solver = DeepQLearningSolver(max_steps = max_steps, eps_fraction = eps_fraction,
                        exploration_policy = masked_linear_epsilon_greedy(max_steps, eps_fraction, eps_end, mask),
                        evaluation_policy = masked_evaluation(mask),
                        verbose = true,
-                       logdir = "joint-log/log6",
+                       logdir = "joint-log/log8",
                        rng = rng)
 
 env = POMDPEnvironment(pomdp)

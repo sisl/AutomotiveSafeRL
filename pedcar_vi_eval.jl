@@ -1,4 +1,4 @@
-N_PROCS = 14
+N_PROCS = 20
 addprocs(N_PROCS)
 
 @everywhere begin
@@ -24,8 +24,6 @@ env = UrbanEnv(params=params);
 
 mdp = PedCarMDP(env=env, pos_res=2.0, vel_res=2.);
 
-state_space = states(mdp)
-
 # Load VI data for maksing
 vi_data = JLD.load("pc_util_processed.jld")
 policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
@@ -50,11 +48,11 @@ pomdp = UrbanPOMDP(env=env,
                     pos_obs_noise = 0., # fully observable
                     vel_obs_noise = 0.,
                     ego_start=20);
-rand_pol = RandomMaskedPOMDPPolicy(mask, pomdp, rng);
+rand_pol = RandomMaskedPOMDPPolicy(mask, pomdp, MersenneTwister(1));
 
 
 println("\n Parallel Evaluation in continuous environment: \n")
 flush(STDOUT)
-@time rewards_mask, steps_mask, violations_mask = parallel_evaluation(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
+@time rewards_mask, steps_mask, violations_mask = parallel_evaluation(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=MersenneTwister(1));
 print_summary(rewards_mask, steps_mask, violations_mask)
 flush(STDOUT)
