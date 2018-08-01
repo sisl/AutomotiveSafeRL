@@ -3,7 +3,7 @@ function evaluation_loop(mdp::MDP, policy::Policy; n_ep::Int64 = 1000, max_steps
     steps = zeros(n_ep)
     violations = zeros(n_ep)
     d0 = initial_state_distribution(mdp)
-    for ep=1:n_ep
+    @showprogress for ep=1:n_ep
         s0 = rand(rng, d0)
         hr = HistoryRecorder(max_steps=max_steps, rng=rng)
         hist = simulate(hr, mdp, policy, s0)
@@ -35,6 +35,7 @@ end
 function evaluate(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::AbstractRNG)
     s0 = initial_state(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
+    up = FastPreviousObservationUpdater{UrbanObs}()
     b0 = initialize_belief(up, o0)
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
     hist = simulate(hr, pomdp, policy, up, b0, s0)
@@ -45,8 +46,8 @@ function evaluate(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::Abst
 end
 
 function parallel_evaluation(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_steps::Int64 = 500, rng::AbstractRNG = Base.GLOBAL_RNG)
-    rngs = Vector{AbstractRNG}(nprocs())
-    for i in nprocs()
+    rngs = Vector{AbstractRNG}(n_ep)
+    for i=1:n_ep
         rngs[i] = MersenneTwister(i)
     end
     res = pmap(x -> evaluate(pomdp, policy, max_steps, x), rngs)
