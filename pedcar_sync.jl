@@ -76,8 +76,8 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=10, belres=1e-4, include_Q=true, verbose=true)
-policy_file = "pc_util_fast_mem.jld"
+solver = ParallelSynchronousValueIterationSolver(n_procs=N_PROCS, max_iterations=4, belres=1e-4, include_Q=true, verbose=true)
+policy_file = "pc_util_sync.jld"
 #policy = ValueIterationPolicy(mdp, include_Q=true)
 if isfile(policy_file)
   data = load(policy_file)

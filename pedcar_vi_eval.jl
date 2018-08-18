@@ -1,10 +1,11 @@
-N_PROCS = 20
+N_PROCS = 40
 addprocs(N_PROCS)
 
 @everywhere begin
     using POMDPs, POMDPToolbox, DiscreteValueIteration, MDPModelChecking
     using AutomotiveDrivingModels, AutomotivePOMDPs
     using LocalApproximationValueIteration
+    using PedCar
     using Reel, AutoViz
     using ProgressMeter
     using JLD
@@ -22,20 +23,32 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(env=env, pos_res=2.0, vel_res=2.);
-
+mdp = PedCarMDP(env=env, ped_birth=0.3, car_birth=0.3, pos_res=2.0, vel_res=2.);
+init_transition!(mdp)
 # Load VI data for maksing
+#state_space = states(mdp);
+#vi_data = JLD.load("pc_util_fast.jld")
+#@showprogress for s in state_space
+#     if !s.crash && isterminal(mdp, s)
+#         si = state_index(mdp, s)
+#         vi_data["util"][si] = 1.0
+#         vi_data["qmat"][si, :] = ones(n_actions(mdp))
+#     end
+#end
+#policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
+#JLD.save("pc_util_processed.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
+
 vi_data = JLD.load("pc_util_processed.jld")
 policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
 
 threshold = 0.9999
 mask = SafetyMask(mdp, policy, threshold);
 
-
-# rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
-# println("Evaluation in discretized environment: \n ")
-# @time rewards_mask, steps_mask, violations_mask = evaluation_loop(mdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
-# print_summary(rewards_mask, steps_mask, violations_mask)
+rng = MersenneTwister(1)
+rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
+println("Evaluation in discretized environment: \n ")
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(mdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
+print_summary(rewards_mask, steps_mask, violations_mask)
 
 pomdp = UrbanPOMDP(env=env,
                     ego_goal = LaneTag(2, 1),
