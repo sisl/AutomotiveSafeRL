@@ -137,7 +137,7 @@ function MDPModelChecking.value_vector(policy::LocalApproximationValueIterationP
 end
 
 function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
-    s_mdp = get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
+    s_mdp = PedCar.get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     action_space = actions(mask.mdp)
     # compute risk vector
@@ -159,6 +159,30 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCa
         end
     end
     return safe_acts
+end
+
+function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, o::UrbanObs) where P <: Policy
+    s = obs_to_scene(pomdp, o)
+    return compute_probas(pomdp, mask, s, PED_ID, CAR_ID)
+end
+
+function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, o::Array{Float64, 2}) where P <: Policy
+    d, dd = size(o)
+    @assert dd == 1
+    return compute_probas(mask, o[:], PED_ID, CAR_ID)
+end
+
+function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
+    s_mdp = PedCar.get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
+    itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
+    action_space = actions(mask.mdp)
+    # compute risk vector
+    p_sa = zeros(n_actions(mask.mdp))
+    for (i, ss) in enumerate(itp_states)
+        vals = value_vector(mask.policy, ss)
+        p_sa += itp_weights[i]*vals
+    end
+    return p_sa
 end
 
 function POMDPToolbox.action_info(policy::MaskedEpsGreedyPolicy{M}, s) where M <: SafetyMask
@@ -184,7 +208,7 @@ function POMDPs.action(policy::RandomMaskedPOMDPPolicy, s)
 end
 
 function POMDPToolbox.action_info{M}(policy::RandomMaskedPOMDPPolicy{M}, s)
-    return action(policy, s), safe_actions(policy.pomdp, policy.mask, s)
+    return action(policy, s), (safe_actions(policy.pomdp, policy.mask, s), compute_probas(pomdp, mask, s))
 end
 
 

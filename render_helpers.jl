@@ -57,7 +57,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
     return duration, fps, render_states
 end
 
-function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Any}, mask::SafetyMask;
+function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Vector{UrbanAction}}, probas::Vector{Vector{Float64}}, mask::SafetyMask;
                         interp=true,
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 17.))
@@ -67,6 +67,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
         frame_index = Int(floor(t/dt)) + 1
         scene = states[frame_index] #state2scene(mdp, states[frame_index])
         safe_acts = [a.acc for a in safe_actions[frame_index]]
+        probs = [round(p, 4) for p in probas[frame_index]]
         if !interp
             itp_overlay = SceneOverlay[]
         else
@@ -76,6 +77,43 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
                 pomdp.env,
                 cat(1, overlays,itp_overlay...,
                                 TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
+                                            font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,4.),
+                                            incameraframe=true),
+                                 TextOverlay(text = ["Acc: $(actions[frame_index].acc)"],
+                                            font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,6.),
+                                            incameraframe=true),
+                                TextOverlay(text = ["Available Actions: $safe_acts"],
+                                            font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,10.),
+                                            incameraframe=true),
+                                TextOverlay(text = ["Action probas: $probs"],
+                                            font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,8.),
+                                            incameraframe=true),
+                                TextOverlay(text = ["step: $frame_index"],
+                                            font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,-5.),
+                                            incameraframe=true)),
+                cam=cam,
+                car_colors=get_colors(scene))
+    end
+    return duration, fps, render_states
+end
+
+function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Any};
+                        overlays=SceneOverlay[IDOverlay()],
+                        cam=StaticCamera(VecE2(0, -5.), 17.))
+    duration = length(states)*pomdp.ΔT
+    fps = Int(1/pomdp.ΔT)    
+    function render_states(t, dt)
+        frame_index = Int(floor(t/dt)) + 1
+        scene = states[frame_index] #state2scene(mdp, states[frame_index])
+        safe_acts = [a.acc for a in safe_actions[frame_index]]
+        return AutoViz.render(scene,
+                pomdp.env,
+                cat(1, overlays, TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,6.),
                                             incameraframe=true),
@@ -166,7 +204,7 @@ function render_interpolated_states(mdp::CarMDP, pomdp::UrbanPOMDP, scene::Scene
     return AutoViz.render(sp, env, cam=FitToContentCamera(0.), car_colors = colors)    
 end
 
-mutable struct InterpolationOverlay{M} <: SceneOverlay where {M <: Union{CarMDP, PedMDP}}
+mutable struct InterpolationOverlay{M} <: SceneOverlay where {M <: Union{CarMDP, PedMDP, PedCarMDP}}
     verbosity::Int
     color::Colorant
     font_size::Int
@@ -178,11 +216,32 @@ mutable struct InterpolationOverlay{M} <: SceneOverlay where {M <: Union{CarMDP,
         verbosity::Int=1,
         color::Colorant=colorant"white",
         font_size::Int=20,
-        ) where {M <: Union{CarMDP, PedMDP}}
+        ) where {M <: Union{CarMDP, PedMDP, PedCarMDP}}
 
         new{M}(verbosity, color, font_size, id, mdp, pomdp)
     end
 end
+
+function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay{PedCarMDP}, scene::Scene, env::OccludedEnv)
+    transparency = 0.5
+    s_mdp = get_mdp_state(mask.mdp, pomdp, scene, 101, 2)
+    itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
+    for ss in itp_states 
+        ci = ss.car
+        x, y, θ, v = ci.posG.x, ci.posG.y, ci.posG.θ, ci.v 
+        color = RGBA(75./255, 66./255, 244./255, transparency)
+        add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.car_type.length, overlay.mdp.car_type.width, color, color, RGBA(1.,1.,1.,transparency)))
+        pi = ss.ped
+        x, y, θ, v = pi.posG.x, pi.posG.y, pi.posG.θ, pi.v 
+        color = RGBA(75./255, 66./255, 244./255, transparency)
+        add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ped_type.length, overlay.mdp.ped_type.width, color, color, RGBA(1.,1.,1.,transparency)))
+        ei = ss.ego 
+        x, y, θ, v = ei.posG.x, ei.posG.y, ei.posG.θ, ei.v 
+        color = RGBA(75./255, 66./255, 244./255, transparency)
+        add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ego_type.length, overlay.mdp.ego_type.width, color, color, RGBA(1.,1.,1.,transparency)))
+    end
+end
+
 
 function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay{CarMDP}, scene::Scene, env::OccludedEnv)
     transparency = 0.5
