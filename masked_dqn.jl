@@ -15,7 +15,7 @@ function best_action(acts::Vector{A}, val::Array{Float32, 2}, problem::M) where 
             best_ai = ai 
         end
     end
-    return all_actions[best_ai]
+    return all_actions[best_ai]::A
 end
 
 
@@ -23,10 +23,10 @@ end
 function masked_linear_epsilon_greedy(max_steps::Int64, eps_fraction::Float64, eps_end::Float64, mask::M) where M <: Union{SafetyMask, JointMask}
     # define function that will be called to select an action in DQN
     # only supports MDP environments
-    function action_masked_epsilon_greedy(policy::DQNPolicy, env::POMDPEnvironment, obs, global_step::Int64, rng::AbstractRNG)
+    function action_masked_epsilon_greedy(policy::AbstractNNPolicy, env::POMDPEnvironment, obs, global_step::Int64, rng::AbstractRNG)
         eps = update_epsilon(global_step, eps_fraction, eps_end, max_steps)
         acts = safe_actions(pomdp, mask, obs)
-        val = get_value(policy, obs)
+        val = get_value!(policy, obs)
         if rand(rng) < eps
             return (rand(rng, acts), eps)
         else
@@ -37,16 +37,17 @@ function masked_linear_epsilon_greedy(max_steps::Int64, eps_fraction::Float64, e
 end
 
 function masked_evaluation(mask::M) where M <: Union{SafetyMask, JointMask}
-    function masked_evaluation_policy(policy::DQNPolicy, env::POMDPEnvironment, n_eval::Int64, max_episode_length::Int64, verbose::Bool)
+    function masked_evaluation_policy(policy::AbstractNNPolicy, env::POMDPEnvironment, n_eval::Int64, max_episode_length::Int64, verbose::Bool)
         avg_r = 0 
         for i=1:n_eval
             done = false 
             r_tot = 0.0
             step = 0
             obs = reset(env)
+            DeepQLearning.reset_hidden_state!(policy)
             while !done && step <= max_episode_length
                 acts = safe_actions(pomdp, mask, obs)
-                val = get_value(policy, obs)
+                val = get_value!(policy, obs)
                 act = best_action(acts, val, env.problem)
                 obs, rew, done, info = step!(env, act)
                 r_tot += rew 
@@ -57,10 +58,12 @@ function masked_evaluation(mask::M) where M <: Union{SafetyMask, JointMask}
         if verbose
             println("Evaluation ... Avg Reward ", avg_r/n_eval)
         end
-        return  avg_r /= n_eval
+        avg_r /= n_eval
+        return  avg_r
     end
     return masked_evaluation_policy
 end
+
 
 ###
 

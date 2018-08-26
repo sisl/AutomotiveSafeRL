@@ -137,18 +137,10 @@ function MDPModelChecking.value_vector(policy::LocalApproximationValueIterationP
 end
 
 function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
-    s_mdp = PedCar.get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
-    itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
-    action_space = actions(mask.mdp)
-    # compute risk vector
-    p_sa = zeros(n_actions(mask.mdp))
-    for (i, ss) in enumerate(itp_states)
-        vals = value_vector(mask.policy, ss)
-        p_sa += itp_weights[i]*vals
-    end
-    # println(p_sa)
+    p_sa = compute_probas(pomdp, mask, s, ped_id, car_id)
     safe_acts = UrbanAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
+    action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
         push!(safe_acts, action_space[indmax(p_sa)])
     else
@@ -175,7 +167,6 @@ end
 function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
     s_mdp = PedCar.get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
-    action_space = actions(mask.mdp)
     # compute risk vector
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
@@ -208,7 +199,11 @@ function POMDPs.action(policy::RandomMaskedPOMDPPolicy, s)
 end
 
 function POMDPToolbox.action_info{M}(policy::RandomMaskedPOMDPPolicy{M}, s)
-    return action(policy, s), (safe_actions(policy.pomdp, policy.mask, s), compute_probas(pomdp, mask, s))
+    sa = safe_actions(policy.pomdp, policy.mask, s)
+    probas = compute_probas(policy.pomdp, policy.mask, s)
+    ss = obs_to_scene(policy.pomdp, s)
+    route = get_mdp_state(policy.mask.mdp, policy.pomdp, ss, PED_ID, CAR_ID).route
+    return action(policy, s), (sa, probas, route)
 end
 
 
