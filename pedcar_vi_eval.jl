@@ -1,7 +1,7 @@
-N_PROCS = 40
-addprocs(N_PROCS)
+#N_PROCS = 40
+#addprocs(N_PROCS)
 
-@everywhere begin
+#@everywhere begin
     using POMDPs, POMDPToolbox, DiscreteValueIteration, MDPModelChecking
     using AutomotiveDrivingModels, AutomotivePOMDPs
     using LocalApproximationValueIteration
@@ -14,20 +14,19 @@ addprocs(N_PROCS)
     include("masking.jl")
     include("util.jl")
     include("render_helpers.jl")
-end
 
-params = UrbanParams(nlanes_main=1,
+    params = UrbanParams(nlanes_main=1,
                      crosswalk_pos =[VecSE2(6, 0., pi/2), VecSE2(-6, 0., pi/2), VecSE2(0., -5., 0.)],
                      crosswalk_length =  [14.0, 14., 14.0],
                      crosswalk_width = [4.0, 4.0, 3.1],
                      stop_line = 22.0)
-env = UrbanEnv(params=params);
+    env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(env=env, ped_birth=0.3, car_birth=0.3, pos_res=2.0, vel_res=2.);
-init_transition!(mdp)
-# Load VI data for maksing
+    mdp = PedCarMDP(env=env, ped_birth=0.7, car_birth=0.7, pos_res=2.0, vel_res=2.);
+    init_transition!(mdp)
+## Load VI data for maksing
 #state_space = states(mdp);
-#vi_data = JLD.load("pc_util_fast.jld")
+#vi_data = JLD.load("pc_util_inter.jld")
 #@showprogress for s in state_space
 #     if !s.crash && isterminal(mdp, s)
 #         si = state_index(mdp, s)
@@ -36,14 +35,14 @@ init_transition!(mdp)
 #     end
 #end
 #policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
-#JLD.save("pc_util_processed.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
+    #JLD.save("pc_util_processed.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
 
-vi_data = JLD.load("pc_util_processed.jld")
-policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
+    vi_data = JLD.load("pc_util_processed.jld")
+    policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
 
-threshold = 0.9999
-mask = SafetyMask(mdp, policy, threshold);
-
+    threshold = 0.9999
+    mask = SafetyMask(mdp, policy, threshold);
+#end #@everywhere
 rng = MersenneTwister(1)
 rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
 println("Evaluation in discretized environment: \n ")
@@ -64,8 +63,8 @@ pomdp = UrbanPOMDP(env=env,
 rand_pol = RandomMaskedPOMDPPolicy(mask, pomdp, MersenneTwister(1));
 
 
-println("\n Parallel Evaluation in continuous environment: \n")
+println("\n Evaluation in continuous environment: \n")
 flush(STDOUT)
-@time rewards_mask, steps_mask, violations_mask = parallel_evaluation(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=MersenneTwister(1));
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, rand_pol, n_ep=10000, max_steps=100, rng=MersenneTwister(1));
 print_summary(rewards_mask, steps_mask, violations_mask)
 flush(STDOUT)
