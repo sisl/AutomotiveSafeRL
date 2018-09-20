@@ -42,7 +42,7 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    max_peds=1, 
                    car_birth=0.7, 
                    ped_birth=0.7, 
-                   obstacles=false, # no fixed obstacles
+                   obstacles=true, # no fixed obstacles
                    lidar=false,
                    ego_start=20,
                    ΔT=0.1)
@@ -52,23 +52,23 @@ policy = RandomPolicy(rng, pomdp, VoidUpdater())
 ## Generate data 
 max_steps = 400
 n_train = 3000
-if !isfile("/scratch/boutonm/train10k_"*string(seed)*".jld")
+if !isfile("/scratch/boutonm/train3k_"*string(seed)*".jld")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
-    save("/scratch/boutonm/train10k_"*string(seed)*".jld", "train_X", train_X, "train_Y", train_Y)
+    save("/scratch/boutonm/train3k_"*string(seed)*".jld", "train_X", train_X, "train_Y", train_Y)
 else
-    println("Loading existing training data: "*"train10k_"*string(seed)*".jld")
-    train_data = load("/scratch/boutonm/train10k_"*string(seed)*".jld")
+    println("Loading existing training data: "*"train3k_"*string(seed)*".jld")
+    train_data = load("/scratch/boutonm/train3k_"*string(seed)*".jld")
     train_X, train_Y = train_data["train_X"], train_data["train_Y"]
 end
 n_val = 500
-if !isfile("/scratch/boutonm/val1k_"*string(seed)*".jld")
+if !isfile("/scratch/boutonm/val_"*string(seed)*".jld")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
-    save("/scratch/boutonm/val1k_"*string(seed)*".jld", "val_X", val_X, "val_Y", val_Y)
+    save("/scratch/boutonm/val_"*string(seed)*".jld", "val_X", val_X, "val_Y", val_Y)
 else
-    println("Loading existing validation data: "*"val1k_"*string(seed)*".jld")
-    val_data = load("/scratch/boutonm/val1k_"*string(seed)*".jld")
+    println("Loading existing validation data: "*"val_"*string(seed)*".jld")
+    val_data = load("/scratch/boutonm/val_"*string(seed)*".jld")
     val_X, val_Y = val_data["val_X"], val_data["val_Y"]
 end
 
@@ -144,7 +144,7 @@ end
 
 optimizer = ADAM(Flux.params(model), 1e-3)
 
-n_epochs = 5
+n_epochs = 10
 training!(loss, zip(train_X, train_Y), zip(val_X, val_Y), optimizer, n_epochs, logdir="log/"*model_name)
 
 weights = Tracker.data.(Flux.params(model))
