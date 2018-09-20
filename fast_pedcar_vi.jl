@@ -34,7 +34,7 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=10, belres=1e-4, include_Q=true, verbose=true)
+solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=15, belres=1e-4, include_Q=true, verbose=true)
 policy_file = "pc_util_inter.jld"
 if isfile(policy_file)
   data = load(policy_file)
@@ -43,7 +43,7 @@ end
 policy = solve(solver, mdp)
 JLD.save(policy_file, "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
 
-threshold = 0.9999
+threshold = 0.999
 mdp.collision_cost = -1.0
 mask = SafetyMask(mdp, policy, threshold);
 rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
@@ -56,7 +56,7 @@ solver.init_util = policy.util
 policy = solve(solver, mdp) # resume
 
 
-threshold = 0.9999
+threshold = 0.999
 mdp.collision_cost = -1.0
 mask = SafetyMask(mdp, policy, threshold);
 rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
