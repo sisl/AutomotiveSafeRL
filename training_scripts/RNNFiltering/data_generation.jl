@@ -19,10 +19,11 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
     X[2:n_steps(hist)+1] = hist.observation_hist
     # build labels 
     label_dims = (n_features)*(pomdp.max_cars + pomdp.max_peds)
-    Y = Vector{SVector{label_dims, Float64}}(max_steps+1)
+    Y = Vector{Vector{Float64}}(max_steps+1)
     fill!(Y, zeros(label_dims))
     svec = convert_s.(Vector{Float64}, hist.state_hist, pomdp) 
     for (i, s) in enumerate(hist.state_hist)
+        ego = get_ego(s).state
         sorted_vehicles = sort!([veh for veh in s], by=x->x.id)
         for veh in sorted_vehicles
             if veh.id == EGO_ID
@@ -30,18 +31,18 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
             end
             if veh.def.class == AgentClass.CAR
                 @assert veh.id <= pomdp.max_cars+1 "$(veh.id)"
-                o[n_features*veh.id - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
-                o[n_features*veh.id - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
-                o[n_features*veh.id - 2] = veh.state.posG.θ/float(pi)
-                o[n_features*veh.id - 1] = veh.state.v/speed_limit
-                o[n_features*veh.id] = 1.0
+                Y[i][n_features*veh.id - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
+                Y[i][n_features*veh.id - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
+                Y[i][n_features*veh.id - 2] = veh.state.posG.θ/float(pi)
+                Y[i][n_features*veh.id - 1] = veh.state.v/speed_limit
+                Y[i][n_features*veh.id] = 1.0
             end
             if veh.def.class == AgentClass.PEDESTRIAN
-                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
-                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
-                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 2] = veh.state.posG.θ/float(pi)
-                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 1] = veh.state.v/speed_limit
-                o[n_features*(veh.id - 100 + pomdp.max_cars + 1)] = 1.0
+                Y[i][n_features*(veh.id - 100 + pomdp.max_cars + 1) - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
+                Y[i][n_features*(veh.id - 100 + pomdp.max_cars + 1) - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
+                Y[i][n_features*(veh.id - 100 + pomdp.max_cars + 1) - 2] = veh.state.posG.θ/float(pi)
+                Y[i][n_features*(veh.id - 100 + pomdp.max_cars + 1) - 1] = veh.state.v/speed_limit
+                Y[i][n_features*(veh.id - 100 + pomdp.max_cars + 1)] = 1.0
             end
         end
     

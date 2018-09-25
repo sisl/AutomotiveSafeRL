@@ -44,7 +44,8 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    max_peds=1, 
                    car_birth=0.7, 
                    ped_birth=0.7, 
-                   obstacles=true, # no fixed obstacles
+                   obs_dist = ObstacleDistribution(mdp.env, upper_obs_pres_prob=0., left_obs_pres_prob=1.0, right_obs_pres_prob=1.0),
+                   max_obstacles=1, # no fixed obstacles
                    lidar=false,
                    ego_start=20,
                    ΔT=0.1)
