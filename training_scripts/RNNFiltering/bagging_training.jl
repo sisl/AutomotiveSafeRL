@@ -23,7 +23,8 @@ s = ArgParseSettings()
         default = 1
     "--resume"
         help = "resume training of an existing model"
-        action = :store_true
+        arg_type = Int64
+        default = -1
 end
 parsed_args = parse_args(ARGS, s)
 
@@ -74,10 +75,10 @@ else
 end
 
 
-model_name = "model_"*string(seed)
-if !parsed_args["resume"]
+model_name = "model_"*string(parsed_args["resume"])
+if parsed_args["resume"] == -1
     input_length = n_dims(pomdp) 
-    output_length = n_dims(pomdp) - 4
+    output_length = n_dims(pomdp) - 16
 
     model = Chain(LSTM(input_length, 128),
               Dense(128, 64, relu),
@@ -111,7 +112,7 @@ function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64
         epoch_time = @elapsed begin
             opt = Flux.Optimise.runall(optimizer)
             training_loss = 0.
-            @showprogress for d in train_data 
+            for d in train_data 
                 l = loss(d...)
                 @interrupts Flux.back!(l)
                 grad_norm = global_norm(params(model))

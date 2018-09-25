@@ -15,8 +15,8 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
     fill!(X, zeros(length(o0)))
     X[1] = o0 
     X[2:n_steps(hist)+1] = hist.observation_hist
-    Y = Vector{SVector{length(o0)-4, Float64}}(max_steps+1)
-    fill!(Y, zeros(length(o0) - 4))
+    Y = Vector{SVector{length(o0)-4-n_features*n_obstacles, Float64}}(max_steps+1)
+    fill!(Y, zeros(length(o0) - 4 - n_features*n_obstacles))
     svec = convert_s.(Vector{Float64}, hist.state_hist, pomdp) 
     Y[1:n_steps(hist)+1] = [s[5:end - n_features*n_obstacles] for s in svec]
     return X, Y
