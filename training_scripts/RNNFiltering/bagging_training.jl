@@ -53,7 +53,7 @@ policy = RandomPolicy(rng, pomdp, VoidUpdater())
 
 ## Generate data 
 max_steps = 400
-n_train = 3000
+n_train = 100
 if !isfile("/scratch/boutonm/train3k_"*string(seed)*".jld2")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
@@ -63,7 +63,7 @@ else
     train_data = load("/scratch/boutonm/train3k_"*string(seed)*".jld2")
     train_X, train_Y = train_data["train_X"], train_data["train_Y"]
 end
-n_val = 500
+n_val = 100
 if !isfile("/scratch/boutonm/val_"*string(seed)*".jld2")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
@@ -78,7 +78,8 @@ end
 model_name = "model_"*string(parsed_args["resume"])
 if parsed_args["resume"] == -1
     input_length = n_dims(pomdp) 
-    output_length = n_dims(pomdp) - 16
+    n_features = 5
+    output_length = n_features*(pomdp.max_cars + pomdp.max_peds)
 
     model = Chain(LSTM(input_length, 128),
               Dense(128, 64, relu),

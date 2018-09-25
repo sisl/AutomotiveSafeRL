@@ -2,8 +2,10 @@ const Obs = Vector{Float64}
 const Traj = Vector{Vector{Float64}}
 
 function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::AbstractRNG)
-    n_features = 4
-    n_obstacles = pomdp.obstacles ? 3 : 0
+    n_features = 5 # absence/presence
+    n_obstacles = pomdp.max_obstacles 
+    max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
+    speed_limit = pomdp.env.params.speed_limit
     s0 = initial_state(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
     up = FastPreviousObservationUpdater{UrbanObs}()
@@ -15,10 +17,35 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
     fill!(X, zeros(length(o0)))
     X[1] = o0 
     X[2:n_steps(hist)+1] = hist.observation_hist
-    Y = Vector{SVector{length(o0)-4-n_features*n_obstacles, Float64}}(max_steps+1)
-    fill!(Y, zeros(length(o0) - 4 - n_features*n_obstacles))
+    # build labels 
+    label_dims = (n_features)*(pomdp.max_cars + pomdp.max_peds)
+    Y = Vector{SVector{label_dims, Float64}}(max_steps+1)
+    fill!(Y, zeros(label_dims))
     svec = convert_s.(Vector{Float64}, hist.state_hist, pomdp) 
-    Y[1:n_steps(hist)+1] = [s[5:end - n_features*n_obstacles] for s in svec]
+    for (i, s) in enumerate(hist.state_hist)
+        sorted_vehicles = sort!([veh for veh in s], by=x->x.id)
+        for veh in sorted_vehicles
+            if veh.id == EGO_ID
+                continue
+            end
+            if veh.def.class == AgentClass.CAR
+                @assert veh.id <= pomdp.max_cars+1 "$(veh.id)"
+                o[n_features*veh.id - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
+                o[n_features*veh.id - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
+                o[n_features*veh.id - 2] = veh.state.posG.θ/float(pi)
+                o[n_features*veh.id - 1] = veh.state.v/speed_limit
+                o[n_features*veh.id] = 1.0
+            end
+            if veh.def.class == AgentClass.PEDESTRIAN
+                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 4] = (veh.state.posG.x - ego.posG.x)/max_ego_dist
+                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 3] = (veh.state.posG.y - ego.posG.y)/max_ego_dist
+                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 2] = veh.state.posG.θ/float(pi)
+                o[n_features*(veh.id - 100 + pomdp.max_cars + 1) - 1] = veh.state.v/speed_limit
+                o[n_features*(veh.id - 100 + pomdp.max_cars + 1)] = 1.0
+            end
+        end
+    
+    end
     return X, Y
 end
 
