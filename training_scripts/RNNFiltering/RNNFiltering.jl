@@ -18,7 +18,8 @@ export
     collect_set,
     global_norm,
     set_tb_step!,
-    training!
+    training!,
+    RandomHoldPolicy
 
 function loss(x, y)
     l = mean(Flux.mse.(model.(x), y))
