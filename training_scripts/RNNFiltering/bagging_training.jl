@@ -42,8 +42,8 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
-                   car_birth=0.7, 
-                   ped_birth=0.7, 
+                   car_birth=0.3, 
+                   ped_birth=0.3, 
                    obs_dist = ObstacleDistribution(mdp.env, upper_obs_pres_prob=0., left_obs_pres_prob=1.0, right_obs_pres_prob=1.0),
                    max_obstacles=1, # no fixed obstacles
                    lidar=false,
@@ -53,9 +53,9 @@ pomdp = UrbanPOMDP(env=mdp.env,
 policy = RandomHoldPolicy(pomdp, 5, 0, UrbanAction(0.), rng);
 
 ## Generate data 
-folder = "./"
+folder = "/scratch/boutonm/"
 max_steps = 400
-n_train = 100
+n_train = 500
 if !isfile(folder*"train_"*string(seed)*".jld2")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
@@ -76,8 +76,11 @@ else
     val_X, val_Y = val_data["val_X"], val_data["val_Y"]
 end
 
-
-model_name = "model_"*string(parsed_args["resume"])
+if parsed_args["resume"] == -1
+    model_name = "model_"*string(parsed_args["seed"])
+else
+    model_name = "model_"*string(parsed_args["resume"])
+end
 if parsed_args["resume"] == -1
     input_length = n_dims(pomdp) 
     n_features = 5
@@ -145,6 +148,7 @@ function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64
         @tb_log validation_loss
         set_tb_step!(ep)
         @tb_log grad_norm
+        @save model_name*".bson" model
         logg = @sprintf("%5d / %5d Train loss %0.3e |  Val loss %1.3e | Grad %2.3e | Epoch time (s) %2.1f | Total time (s) %2.1f",
                                 ep, n_epochs, training_loss, validation_loss, grad_norm, epoch_time, total_time)
         println(logg)
@@ -157,6 +161,4 @@ optimizer = ADAM(Flux.params(model), 1e-3)
 n_epochs = 10
 training!(loss, zip(train_X, train_Y), zip(val_X, val_Y), optimizer, n_epochs, logdir="log/"*model_name)
 
-weights = Tracker.data.(Flux.params(model))
 @save model_name*".bson" model
-@save "weights_"*match(r"\d+", model_name).match*".bson" weights 
