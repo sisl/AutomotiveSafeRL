@@ -50,28 +50,29 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    ego_start=20,
                    ΔT=0.1)
 
-policy = RandomPolicy(rng, pomdp, VoidUpdater())
+policy = RandomHoldPolicy(pomdp, 5, 0, UrbanAction(0.), rng);
 
 ## Generate data 
+folder = "./"
 max_steps = 400
 n_train = 100
-if !isfile("/scratch/boutonm/train3k_"*string(seed)*".jld2")
+if !isfile(folder*"train_"*string(seed)*".jld2")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
-    save("/scratch/boutonm/train3k_"*string(seed)*".jld2", "train_X", train_X, "train_Y", train_Y)
+    save(folder*"train_"*string(seed)*".jld2", "train_X", train_X, "train_Y", train_Y)
 else
-    println("Loading existing training data: "*"train3k_"*string(seed)*".jld2")
-    train_data = load("/scratch/boutonm/train3k_"*string(seed)*".jld2")
+    println("Loading existing training data: "*"train_"*string(seed)*".jld2")
+    train_data = load(folder*"train_"*string(seed)*".jld2")
     train_X, train_Y = train_data["train_X"], train_data["train_Y"]
 end
 n_val = 100
 if !isfile("/scratch/boutonm/val_"*string(seed)*".jld2")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
-    save("/scratch/boutonm/val_"*string(seed)*".jld2", "val_X", val_X, "val_Y", val_Y)
+    save(folder*"train_"*string(seed)*".jld2", "val_X", val_X, "val_Y", val_Y)
 else
     println("Loading existing validation data: "*"val_"*string(seed)*".jld2")
-    val_data = load("/scratch/boutonm/val_"*string(seed)*".jld2")
+    val_data = load(folder*"train_"*string(seed)*".jld2")
     val_X, val_Y = val_data["val_X"], val_data["val_Y"]
 end
 
