@@ -67,7 +67,7 @@ end
 
 function POMDPs.action(pol::RandomHoldPolicy, s)
     if pol.count % pol.hold_time == 0
-        pol.current_action = rand(rng, actions(pol.pomdp))
+        pol.current_action = rand(pol.rng, actions(pol.pomdp))
         pol.count = 1
     else
         pol.count += 1

@@ -18,12 +18,22 @@ export
     collect_set,
     global_norm,
     set_tb_step!,
-    training!
+    training!,
+    RandomHoldPolicy,
+    process_prediction,
+    build_presence_mask
 
-function loss(x, y)
-    l = mean(Flux.mse.(model.(x), y))
-    reset!(model)
-    return l
+
+function build_presence_mask(y::Vector{Float64}, car_pres_ind=5, ped_pres_ind=10)
+    n_features = 5
+    mask = ones(length(y))
+    if y[car_pres_ind] == 0.
+        mask[1:car_pres_ind-1] .= 0. 
+    end
+    if y[ped_pres_ind] == 0.
+        mask[ped_pres_ind-n_features+1:ped_pres_ind-1] .= 0.
+    end
+    return mask
 end
 
 function global_norm(W)

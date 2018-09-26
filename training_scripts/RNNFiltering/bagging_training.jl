@@ -100,10 +100,15 @@ macro interrupts(ex)
 end
 
 function loss(x, y)
-    l = mean(Flux.mse.(model.(x), y))
-    truncate!(model)
-    reset!(model)
+    mask = build_presence_mask.(y) # same size as y
+    l = mean(mse.(model.(x), y, mask)) # mean over the trajectory
+    Flux.truncate!(model)
+    Flux.reset!(model)
     return l
+end
+
+function mse(ypred, y, mask)
+    return sum(mask.*(ypred - y).^2)/length(y)
 end
 
 function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64; logdir::String="log/model/")
