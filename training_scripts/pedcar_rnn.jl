@@ -88,9 +88,10 @@ mask = SafetyMask(mdp, policy, threshold)
 
 # init continuous state mdp 
 pomdp = UrbanPOMDP(env=mdp.env,
-                    sensor = GaussianSensor(false_positive_rate=0.05, 
-                                            pos_noise = LinearNoise(min_noise=0.5, increase_rate=0.05), 
-                                            vel_noise = LinearNoise(min_noise=0.5, increase_rate=0.05)),
+                    # sensor = GaussianSensor(false_positive_rate=0.05, 
+                    #                         pos_noise = LinearNoise(min_noise=0.5, increase_rate=0.05), 
+                    #                         vel_noise = LinearNoise(min_noise=0.5, increase_rate=0.05)),
+                   sensor = PerfectSensor(),
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
