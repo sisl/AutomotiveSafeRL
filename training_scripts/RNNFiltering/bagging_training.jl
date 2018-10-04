@@ -42,8 +42,8 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
-                   car_birth=0.3, 
-                   ped_birth=0.3, 
+                   car_birth=0.05, 
+                   ped_birth=0.05, 
                    obs_dist = ObstacleDistribution(mdp.env, upper_obs_pres_prob=0., left_obs_pres_prob=1.0, right_obs_pres_prob=1.0),
                    max_obstacles=1, # no fixed obstacles
                    lidar=false,
@@ -55,7 +55,7 @@ policy = RandomHoldPolicy(pomdp, 5, 0, UrbanAction(0.), rng);
 ## Generate data 
 folder = "/scratch/boutonm/"
 max_steps = 400
-n_train = 500
+n_train = 3000
 if !isfile(folder*"train_"*string(seed)*".jld2")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
@@ -65,14 +65,14 @@ else
     train_data = load(folder*"train_"*string(seed)*".jld2")
     train_X, train_Y = train_data["train_X"], train_data["train_Y"]
 end
-n_val = 100
+n_val = 500
 if !isfile("/scratch/boutonm/val_"*string(seed)*".jld2")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
-    save(folder*"train_"*string(seed)*".jld2", "val_X", val_X, "val_Y", val_Y)
+    save(folder*"val_"*string(seed)*".jld2", "val_X", val_X, "val_Y", val_Y)
 else
     println("Loading existing validation data: "*"val_"*string(seed)*".jld2")
-    val_data = load(folder*"train_"*string(seed)*".jld2")
+    val_data = load(folder*"val_"*string(seed)*".jld2")
     val_X, val_Y = val_data["val_X"], val_data["val_Y"]
 end
 
@@ -158,7 +158,7 @@ end
 
 optimizer = ADAM(Flux.params(model), 1e-3)
 
-n_epochs = 10
+n_epochs = 20
 training!(loss, zip(train_X, train_Y), zip(val_X, val_Y), optimizer, n_epochs, logdir="log/"*model_name)
 
 @save model_name*".bson" model

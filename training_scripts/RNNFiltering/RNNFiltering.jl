@@ -27,13 +27,15 @@ export
 function build_presence_mask(y::Vector{Float64}, car_pres_ind=5, ped_pres_ind=10)
     n_features = 5
     mask = ones(length(y))
+    mask[car_pres_ind] = 3.
+    mask[ped_pres_ind] = 3.
     if y[car_pres_ind] == 0.
-        mask[1:car_pres_ind-1] .= 0. 
+        mask[1:car_pres_ind-1] .= 1. 
     end
     if y[ped_pres_ind] == 0.
         mask[ped_pres_ind-n_features+1:ped_pres_ind-1] .= 0.
     end
-    return mask
+    return ones(length(y))
 end
 
 function global_norm(W)

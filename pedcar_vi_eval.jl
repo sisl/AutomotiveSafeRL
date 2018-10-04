@@ -26,19 +26,19 @@
     init_transition!(mdp)
 ## Load VI data for maksing
 #state_space = states(mdp);
-#vi_data = JLD.load("pc_util_inter.jld")
-#@showprogress for s in state_space
-#     if !s.crash && isterminal(mdp, s)
-#         si = state_index(mdp, s)
-#         vi_data["util"][si] = 1.0
-#         vi_data["qmat"][si, :] = ones(n_actions(mdp))
-#     end
-#end
-#policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
-    #JLD.save("pc_util_processed.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
+vi_data = JLD.load("pc_util_inter.jld")
+@showprogress for s in state_space
+     if !s.crash && isterminal(mdp, s)
+         si = state_index(mdp, s)
+         vi_data["util"][si] = 1.0
+         vi_data["qmat"][si, :] = ones(n_actions(mdp))
+     end
+end
+policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
+    JLD.save("pc_util_processed.jld", "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
 
-    vi_data = JLD.load("pc_util_processed.jld")
-    policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
+    #vi_data = JLD.load("pc_util_processed.jld")
+    #policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"]);
 
     threshold = 0.9999
     mask = SafetyMask(mdp, policy, threshold);

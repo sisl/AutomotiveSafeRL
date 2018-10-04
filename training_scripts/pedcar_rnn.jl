@@ -88,19 +88,20 @@ mask = SafetyMask(mdp, policy, threshold)
 
 # init continuous state mdp 
 pomdp = UrbanPOMDP(env=mdp.env,
-                    sensor = GaussianSensor(false_positive_rate=0.05, 
-                                            pos_noise = LinearNoise(min_noise=0.5, increase_rate=0.05), 
-                                            vel_noise = LinearNoise(min_noise=0.5, increase_rate=0.05)),
+                    sensor = PerfectSensor(),
+                    #sensor = GaussianSensor(false_positive_rate=0.05, 
+                    #                        pos_noise = LinearNoise(min_noise=0.5, increase_rate=0.05), 
+                    #                        vel_noise = LinearNoise(min_noise=0.5, increase_rate=0.05)),
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
                    car_birth=0.7, 
                    ped_birth=0.7, 
-                   obstacles=false, # no fixed obstacles
+                   max_obstacles=0, # no fixed obstacles
                    lidar=false,
                    ego_start=20,
                    ΔT=0.5)
-pomdp.action_cost = 0.0
+pomdp.action_cost = -0.01
 pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 

@@ -1,8 +1,8 @@
-nohup julia bagging_training.jl --seed 11 > nn_1.bethpage.out &
-nohup julia bagging_training.jl --seed 12 > nn_2.bethpage.out &
-nohup julia bagging_training.jl --seed 13 > nn_3.bethpage.out &
-nohup julia bagging_training.jl --seed 14 > nn_4.bethpage.out &
-nohup julia bagging_training.jl --seed 15 > nn_5.bethpage.out &
+nohup julia bagging_training.jl --seed 21 > nn_1.bethpage.out &
+nohup julia bagging_training.jl --seed 22 > nn_2.bethpage.out &
+nohup julia bagging_training.jl --seed 23 > nn_3.bethpage.out &
+nohup julia bagging_training.jl --seed 24 > nn_4.bethpage.out &
+nohup julia bagging_training.jl --seed 25 > nn_5.bethpage.out &
 #nohup julia bagging_training.jl --seed 16 > nn_6.bethpage.out &
 #nohup julia bagging_training.jl --seed 17 > nn_7.bethpage.out &
 #nohup julia bagging_training.jl --seed 18 > nn_8.bethpage.out &
