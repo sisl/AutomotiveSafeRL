@@ -82,7 +82,7 @@ function process_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Flo
     b_[1:4] = o[1:4] # ego state fully observable
     # get car state from b
     car_presence = b[5]
-    if 1/(1 + exp(-car_presence)) > 0.5 # softmax 
+    if rand() < car_presence 
         b_[n_features+1:2*n_features] = b[1:4]
     else
         # absent
@@ -91,7 +91,7 @@ function process_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Flo
     
     # get ped state from b 
     ped_presence = b[10]
-    if 1/(1 + exp(-ped_presence)) > 0.5 # softmax 
+    if rand() < ped_presence # softmax 
         b_[2*n_features+1:3*n_features] = b[6:9]
     else
         # absent 
