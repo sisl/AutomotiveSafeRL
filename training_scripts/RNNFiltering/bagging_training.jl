@@ -1,18 +1,18 @@
+using Random
+using Printf
 using Flux
 using Flux: truncate!, reset!, batchseq, @epochs, params
 using POMDPs
-using POMDPToolbox
+using POMDPModelTools
 using AutomotiveDrivingModels
 using AutomotivePOMDPs
 using AutomotiveSensors
 using PedCar
-using UniversalTensorBoard
 using ArgParse
-using JLD2
 using FileIO
 using ProgressMeter
 include("RNNFiltering.jl")
-using RNNFiltering
+using Main.RNNFiltering
 using BSON
 using BSON: @save
 s = ArgParseSettings()
@@ -31,7 +31,7 @@ parsed_args = parse_args(ARGS, s)
 ## RNG SEED 
 seed = parsed_args["seed"]
 rng = MersenneTwister(seed)
-srand(rng)
+Random.seed!(seed)
 
 # # init continuous state mdp 
 mdp = PedCarMDP(pos_res=2.0, vel_res=2., ped_birth=0.7, car_birth=0.7)
@@ -53,27 +53,27 @@ pomdp = UrbanPOMDP(env=mdp.env,
 policy = RandomHoldPolicy(pomdp, 5, 0, UrbanAction(0.), rng);
 
 ## Generate data 
-folder = "/scratch/boutonm/"
+folder = "./scratch/boutonm/"
 max_steps = 400
-n_train = 3000
-if !isfile(folder*"train_"*string(seed)*".jld2")
+n_train = 30
+if !isfile(folder*"train_"*string(seed)*".bson")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
-    save(folder*"train_"*string(seed)*".jld2", "train_X", train_X, "train_Y", train_Y)
+    bson(folder*"train_"*string(seed)*".bson", train_X = train_X, train_Y = train_Y)
 else
-    println("Loading existing training data: "*"train_"*string(seed)*".jld2")
-    train_data = load(folder*"train_"*string(seed)*".jld2")
-    train_X, train_Y = train_data["train_X"], train_data["train_Y"]
+    println("Loading existing training data: "*"train_"*string(seed)*".bson")
+    train_data = BSON.load(folder*"train_"*string(seed)*".bson")
+    train_X, train_Y = train_data[:train_X], train_data[:train_Y]
 end
-n_val = 500
-if !isfile("/scratch/boutonm/val_"*string(seed)*".jld2")
+n_val = 30
+if !isfile(folder*"val_"*string(seed)*".bson")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
-    save(folder*"val_"*string(seed)*".jld2", "val_X", val_X, "val_Y", val_Y)
+    bson(folder*"val_"*string(seed)*".bson", val_X=val_X, val_Y=val_Y)
 else
-    println("Loading existing validation data: "*"val_"*string(seed)*".jld2")
-    val_data = load(folder*"val_"*string(seed)*".jld2")
-    val_X, val_Y = val_data["val_X"], val_data["val_Y"]
+    println("Loading existing validation data: "*"val_"*string(seed)*".bson")
+    val_data = BSON.load(folder*"val_"*string(seed)*".bson")
+    val_X, val_Y = val_data[:val_X], val_data[:val_Y]
 end
 
 if parsed_args["resume"] == -1
@@ -115,7 +115,6 @@ function mse(ypred, y, mask)
 end
 
 function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64; logdir::String="log/model/")
-    set_tb_logdir(logdir)
     total_time = 0.
     grad_norm = 0.
     println("Starting training")
@@ -128,8 +127,8 @@ function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64
                 @interrupts Flux.back!(l)
                 grad_norm = global_norm(params(model))
                 opt()
-                training_loss += l.tracker.data
-                flush(STDOUT) 
+                training_loss += l.data
+                flush(stdout) 
             end
         end
         # log 
@@ -139,26 +138,26 @@ function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64
         validation_loss = 0. 
         for d in validation_data
             val_l = loss(d...)
-            validation_loss += val_l.tracker.data
+            validation_loss += val_l.data
         end
         validation_loss /= length(validation_data)
-        set_tb_step!(ep)
-        @tb_log training_loss
-        set_tb_step!(ep)
-        @tb_log validation_loss
-        set_tb_step!(ep)
-        @tb_log grad_norm
+        # set_tb_step!(ep)
+        # @tb_log training_loss
+        # set_tb_step!(ep)
+        # @tb_log validation_loss
+        # set_tb_step!(ep)
+        # @tb_log grad_norm
         @save model_name*".bson" model
         logg = @sprintf("%5d / %5d Train loss %0.3e |  Val loss %1.3e | Grad %2.3e | Epoch time (s) %2.1f | Total time (s) %2.1f",
                                 ep, n_epochs, training_loss, validation_loss, grad_norm, epoch_time, total_time)
         println(logg)
-        flush(STDOUT)
+        flush(stdout)
     end 
 end
 
 optimizer = ADAM(Flux.params(model), 1e-3)
 
-n_epochs = 20
+n_epochs = 5
 training!(loss, zip(train_X, train_Y), zip(val_X, val_Y), optimizer, n_epochs, logdir="log/"*model_name)
 
 @save model_name*".bson" model

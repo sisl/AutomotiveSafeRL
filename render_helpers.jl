@@ -249,15 +249,15 @@ function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay
     for ss in itp_states 
         ci = ss.car
         x, y, θ, v = ci.posG.x, ci.posG.y, ci.posG.θ, ci.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0 /255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.car_type.length, overlay.mdp.car_type.width, color, color, RGBA(1.,1.,1.,transparency)))
         pi = ss.ped
         x, y, θ, v = pi.posG.x, pi.posG.y, pi.posG.θ, pi.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0 /255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ped_type.length, overlay.mdp.ped_type.width, color, color, RGBA(1.,1.,1.,transparency)))
         ei = ss.ego 
         x, y, θ, v = ei.posG.x, ei.posG.y, ei.posG.θ, ei.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0 /255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ego_type.length, overlay.mdp.ego_type.width, color, color, RGBA(1.,1.,1.,transparency)))
     end
 end
@@ -271,12 +271,12 @@ function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay
     itp_ego, itp_ego_w = interpolate_state(overlay.mdp, s.ego, vspace)
     for ci in itp_car
         x, y, θ, v = ci.posG.x, ci.posG.y, ci.posG.θ, ci.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0/255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.car_type.length, overlay.mdp.car_type.width, color, color, RGBA(1.,1.,1.,transparency)))
     end
     for ei in itp_ego
          x, y, θ, v = ei.posG.x, ei.posG.y, ei.posG.θ, ei.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0/255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ego_type.length, overlay.mdp.ego_type.width, color, color, RGBA(1.,1.,1.,transparency)))
     end    
 end
@@ -290,12 +290,12 @@ function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay
     itp_ego, itp_ego_w = interpolate_state(overlay.mdp, s.ego, ego_v)
     for pi in itp_ped
         x, y, θ, v = pi.posG.x, pi.posG.y, pi.posG.θ, pi.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0/255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ped_type.length, overlay.mdp.ped_type.width, color, color, RGBA(1.,1.,1.,transparency)))
     end
     for ei in itp_ego
          x, y, θ, v = ei.posG.x, ei.posG.y, ei.posG.θ, ei.v 
-        color = RGBA(75./255, 66./255, 244./255, transparency)
+        color = RGBA(75.0/255, 66.0/255, 244.0/255, transparency)
         add_instruction!(rendermodel, render_vehicle, (x, y, θ, overlay.mdp.ego_type.length, overlay.mdp.ego_type.width, color, color, RGBA(1.,1.,1.,transparency)))
     end    
 end

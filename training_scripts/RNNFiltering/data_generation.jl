@@ -8,12 +8,12 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
     speed_limit = pomdp.env.params.speed_limit
     s0 = initial_state(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
-    up = FastPreviousObservationUpdater{UrbanObs}()
-    b0 = initialize_belief(up, o0)
+    up = PreviousObservationUpdater()
+    b0 = o0
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
     hist = simulate(hr, pomdp, policy, up, b0, s0)
     # extract data from the history 
-    X = Vector{SVector{length(o0), Float64}}(max_steps+1)
+    X = Vector{SVector{length(o0), Float64}}(undef, max_steps+1)
     fill!(X, zeros(length(o0)))
     X[1] = o0 
     X[2:n_steps(hist)+1] = hist.observation_hist
@@ -49,8 +49,8 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
 end
 
 function collect_set(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::AbstractRNG, n_set)
-    X_batch = Vector{Traj}(n_set)
-    Y_batch = Vector{Traj}(n_set)
+    X_batch = Vector{Traj}(undef, n_set)
+    Y_batch = Vector{Traj}(undef, n_set)
     @showprogress for i=1:n_set
         X_batch[i], Y_batch[i] = generate_trajectory(pomdp, policy, max_steps, rng)
     end
@@ -99,7 +99,7 @@ function process_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Flo
     end
             
     b_[end - n_features*n_obstacles + 1:end] = o[end - n_features*n_obstacles + 1:end]
-    return b_
+    return b_, car_presence, ped_presence
 end
 
 function normalized_off_the_grid_pos(pomdp::UrbanPOMDP,normalized_ego_x::Float64, normalized_ego_y::Float64)

@@ -1,11 +1,12 @@
-rng = MersenneTwister(1)
+using Random
 using StaticArrays
 using ProgressMeter
 using Parameters
-using JLD
+using JLD2
+using BSON: @load
 using AutomotiveDrivingModels
 using POMDPs
-using POMDPToolbox
+using POMDPModelTools
 using GridInterpolations
 using DiscreteValueIteration
 using LocalApproximationValueIteration
@@ -16,6 +17,8 @@ using DeepQLearning
 using DeepRL
 using PedCar
 using ArgParse
+using Printf
+rng = MersenneTwister(1)
 s = ArgParseSettings()
 @add_arg_table s begin
     "--cost"
@@ -79,12 +82,12 @@ mdp = PedCarMDP(pos_res=2.0, vel_res=2., ped_birth=0.7, car_birth=0.7)
 init_transition!(mdp)
 
 # init safe policy
-vi_data = load("../pc_processed.jld")
-policy = ValueIterationPolicy(mdp, vi_data["qmat"], vi_data["util"], vi_data["pol"])
+@load "pc_processed.bson" qmat util pol
+safe_policy = ValueIterationPolicy(mdp, qmat, util, pol)
 
 # init mask
 threshold = 0.99
-mask = SafetyMask(mdp, policy, threshold)
+mask = SafetyMask(mdp, safe_policy, threshold)
 
 # init continuous state mdp 
 pomdp = UrbanPOMDP(env=mdp.env,
@@ -137,4 +140,4 @@ solver = DeepRecurrentQLearningSolver(arch=RecurrentQNetworkArchitecture(fc_in=f
 env = POMDPEnvironment(pomdp)
 policy = solve(solver, env)
 # save weights!
-DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.jld", problem_file=solver.logdir*"/problem.jld")
+DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.bson", problem_file=solver.logdir*"/problem.bson")

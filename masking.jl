@@ -176,7 +176,7 @@ function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::Ur
     return p_sa
 end
 
-function POMDPToolbox.action_info(policy::MaskedEpsGreedyPolicy{M}, s) where M <: SafetyMask
+function POMDPModelTools.action_info(policy::MaskedEpsGreedyPolicy{M}, s) where M <: SafetyMask
     return action(policy, s), [safe_actions(policy.mask, s), s]
 end
 
@@ -198,7 +198,7 @@ function POMDPs.action(policy::RandomMaskedPOMDPPolicy, s)
     return rand(policy.rng, acts)
 end
 
-function POMDPToolbox.action_info{M}(policy::RandomMaskedPOMDPPolicy{M}, s)
+function POMDPModelTools.action_info(policy::RandomMaskedPOMDPPolicy{M}, s) where M
     sa = safe_actions(policy.pomdp, policy.mask, s)
     probas = compute_probas(policy.pomdp, policy.mask, s)
     ss = obs_to_scene(policy.pomdp, s)
@@ -213,7 +213,7 @@ struct JointMask{P <: MDP, M <: SafetyMask, I}
     ids::Vector{I}
 end
 
-function MDPModelChecking.safe_actions{S}(pomdp::UrbanPOMDP, mask::JointMask, s::S)
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::JointMask, s::S) where S
     acts = intersect([safe_actions(pomdp, m, s) for m in mask.masks]...) 
     if isempty(acts)
         return UrbanAction[UrbanAction(-4.0)]
