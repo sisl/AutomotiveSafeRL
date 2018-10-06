@@ -29,7 +29,7 @@
 vi_data = JLD.load("pc_util_inter.jld")
 @showprogress for s in state_space
      if !s.crash && isterminal(mdp, s)
-         si = state_index(mdp, s)
+         si = stateindex(mdp, s)
          vi_data["util"][si] = 1.0
          vi_data["qmat"][si, :] = ones(n_actions(mdp))
      end

@@ -23,22 +23,22 @@ function POMDPs.states(mdp::PedMDP)
     return state_space
 end
 
-function POMDPs.state_index(mdp::PedMDP, s::PedMDPState)
+function POMDPs.stateindex(mdp::PedMDP, s::PedMDPState)
     n_ego = n_ego_states(mdp.env, mdp.pos_res, mdp.vel_res)
     n_ped = n_ped_states(mdp.env, mdp.pos_res, mdp.vel_ped_res)
     # step 1: find ego_index
-    ego_i = ego_state_index(mdp.env, s.ego, mdp.pos_res, mdp.vel_res)
+    ego_i = ego_stateindex(mdp.env, s.ego, mdp.pos_res, mdp.vel_res)
     # step 2: find ped_index
     if s.ped.posG == mdp.off_grid
         ped_i = n_ped + 1
     else
-        ped_i = ped_state_index(mdp.env, s.ped, mdp.pos_res, mdp.vel_ped_res)
+        ped_i = ped_stateindex(mdp.env, s.ped, mdp.pos_res, mdp.vel_ped_res)
     end
     # step 3: find global index
     si = sub2ind((n_ped+1, n_ego), ped_i, ego_i)
 end
 
-function POMDPs.initial_state_distribution(mdp::PedMDP)
+function POMDPs.initialstate_distribution(mdp::PedMDP)
     ego = initial_ego_state(mdp)
     init_ped_dist = initial_ped_state_distribution(mdp)
     init_ped_states = init_ped_dist.vals
@@ -72,8 +72,8 @@ function initial_ped_state(mdp::PedMDP, rng::AbstractRNG)
     return rand(rng, init_dist)
 end
 
-function POMDPs.initial_state(mdp::PedMDP, rng::AbstractRNG)
-    return rand(rng, initial_state_distribution(mdp))
+function POMDPs.initialstate(mdp::PedMDP, rng::AbstractRNG)
+    return rand(rng, initialstate_distribution(mdp))
 end
 
 function pedestrian_starting_states(mdp::PedMDP)

@@ -1,9 +1,9 @@
 
 
-function test_state_indexing(mdp::PedMDP)
+function test_stateindexing(mdp::PedMDP)
     state_space = states(mdp)
     for (i, s) in enumerate(state_space)
-        if i != state_index(mdp, s)
+        if i != stateindex(mdp, s)
             return false
         end
     end
@@ -21,4 +21,4 @@ env = UrbanEnv(params=params);
 
 mdp = PedMDP(env = env);
 
-@test test_state_indexing(mdp)
+@test test_stateindexing(mdp)

@@ -8,13 +8,13 @@ function write_storm_mdp{S,A}(mdp::MDP{S,A}, filename="mdp.tra")
     open(filename, "w") do f
         write(f, "mdp \n")
         for s in states
-            si = state_index(mdp, s)
+            si = stateindex(mdp, s)
             si -= 1 # 0-indexed
             for a in actions(mdp)
-                ai = action_index(mdp, a) - 1
+                ai = actionindex(mdp, a) - 1
                 d = transition(mdp, s, a)
                 for sp in states
-                    spi = state_index(mdp, sp) - 1
+                    spi = stateindex(mdp, sp) - 1
                     prob = pdf(d, sp)
                     if prob != 0
                         line = string(si, " ", ai, " ", spi, " ", prob, "\n")
@@ -37,13 +37,13 @@ function write_storm_mdp(pomdp::POMDP, filename="pomdp.tra")
     open(filename, "w") do f
         write(f, "mdp \n")
         for s in states
-            si = state_index(pomdp, s)
+            si = stateindex(pomdp, s)
             si -= 1 # 0-indexed
             for a in actions(pomdp)
-                ai = action_index(pomdp, a) - 1
+                ai = actionindex(pomdp, a) - 1
                 d = transition(pomdp, s, a)
                 for sp in states
-                    spi = state_index(pomdp, sp) - 1
+                    spi = stateindex(pomdp, sp) - 1
                     prob = pdf(d, sp)
                     if prob != 0
                         line = string(si, " ", ai, " ", spi, " ", prob, "\n")
@@ -76,10 +76,10 @@ function write_storm_labels{S,A}(mdp::MDP{S, A}, labeling::Dict{S, String}, file
         write(f, "\n")
         write(f, "#END\n")
         # states must be sorted by index
-        # labeled_states = sort(collect(keys(labeling)), by=x->state_index(mdp, x))
+        # labeled_states = sort(collect(keys(labeling)), by=x->stateindex(mdp, x))
         for (i, s) in enumerate(ordered_states(mdp))
             if haskey(labeling, s)
-                si = state_index(mdp, s) - 1 #0 indexed
+                si = stateindex(mdp, s) - 1 #0 indexed
                 write(f, string(si ," ", labeling[s], "\n"))
             end
         end
@@ -106,14 +106,14 @@ function get_state_action_proba(mdp::MDP, P::Vector{Float64}, threshold::Float64
             dist = transition(mdp, s, a)
             for (sp, p) in  weighted_iterator(dist)
                 p == 0.0 ? continue : nothing # skip if zero prob
-                spi = state_index(mdp, sp)
+                spi = stateindex(mdp, sp)
                 # P[spi] < threshold ? continue : nothing # skip if future state is risky
                 P_map[si, ai] += p * P[spi]
             end
         end
 #         if all(P_map[si, :] < threshold)
 #             a = action(policy, s)
-#             ai = action_index(mdp, a)
+#             ai = actionindex(mdp, a)
 #             P_map[si, ai] =
 #         end
     end
@@ -125,7 +125,7 @@ end
 #     states = ordered_states(mdp)
 #     for (si, s) in enumerate(states)
 #         a = action(policy, s)
-#         ai = action_index(mdp, a)
+#         ai = actionindex(mdp, a)
 #         P_map[si, ai] = 1.0
 #     end
 #     return P_map
@@ -150,7 +150,7 @@ function Scheduler{S, A}(mdp::MDP{S, A}, py_scheduler::PyObject)
 end
 
 function POMDPs.action{S, A}(policy::Scheduler{S, A}, s::S)
-    si = state_index(policy.mdp, s)
+    si = stateindex(policy.mdp, s)
     return policy.scheduler[si]
     # choice = policy.scheduler[:get_choice](si-1)
     # if choice[:deterministic]
@@ -180,7 +180,7 @@ end
 function get_safe_actions{S,A}(mask::SafetyMask{S,A}, s::S)
     safe_actions = A[]
     sizehint!(safe_actions, n_actions(mask.mdp))
-    si = state_index(mask.mdp, s)
+    si = stateindex(mask.mdp, s)
     safe = mask.risk_vec[si] > mask.threshold ? true : false
     if !safe # follow safe controller
         push!(safe_actions, action(mask.scheduler, s))
@@ -197,11 +197,11 @@ end
 function get_safe_actions_binary{S, A}(mask::SafetyMask{S, A}, s::S)
     safe_actions = zeros(Bool, n_actions(mask.mdp))
     actions = ordered_actions(mask.mdp)
-    si = state_index(mdp, s)
+    si = stateindex(mdp, s)
     safe = mask.risk_vec[si] > mask.threshold ? true : false
     if !safe
         a = action(mask.scheduler, s)
-        ai = action_index(mask.mdp, a)
+        ai = actionindex(mask.mdp, a)
         safe_actions[ai] = true
     else
         for j in 1:n_actions(mask.mdp)
@@ -229,7 +229,7 @@ function POMDPs.action(policy::MaskedEpsGreedyPolicy, s)
     if rand(rng) < policy.epsilon
         return rand(rng, acts)
     else
-        acts[indmax(policy.val.value_table[state_index(policy.val.mdp, s), action_index(policy.val.mdp, a)] for a in acts)]
+        acts[indmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
     end
 end
 
@@ -240,7 +240,7 @@ end
 
 function POMDPs.action(policy::MaskedValuePolicy, s)
     acts = get_safe_actions(policy.mask, s)
-    return acts[indmax(policy.val.value_table[state_index(policy.val.mdp, s), action_index(policy.val.mdp, a)] for a in acts)]
+    return acts[indmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
 end
 
 
@@ -279,12 +279,12 @@ end
 #                 # action loop
 #                 # util(s) = max_a( R(s,a) + discount_factor * sum(T(s'|s,a)util(s') )
 #                 for a in iterator(sub_aspace)
-#                     iaction = action_index(mdp, a)
+#                     iaction = actionindex(mdp, a)
 #                     dist = transition(mdp, s, a) # creates distribution over neighbors
 #                     u = 0.0
 #                     for (sp, p) in weighted_iterator(dist)
 #                         p == 0.0 ? continue : nothing # skip if zero prob
-#                         isp = state_index(mdp, sp)
+#                         isp = stateindex(mdp, sp)
 #                         u += p * P[isp]
 #                     end
 #                     new_P = u

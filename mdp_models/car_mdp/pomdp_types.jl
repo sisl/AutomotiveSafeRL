@@ -88,7 +88,7 @@ end
 POMDPs.actions(mdp::CarMDP) = [CarMDPAction(-4.0), CarMDPAction(-2.0), CarMDPAction(0.0), CarMDPAction(2.0)]
 POMDPs.n_actions(mdp::CarMDP) = 4
 
-function POMDPs.action_index(mdp::CarMDP, action::CarMDPAction)
+function POMDPs.actionindex(mdp::CarMDP, action::CarMDPAction)
     if action.acc == -4.0
         return 1
     elseif action.acc == -2.0

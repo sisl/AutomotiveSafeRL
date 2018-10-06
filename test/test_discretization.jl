@@ -3,7 +3,7 @@
 function test_ego_space(env::UrbanEnv, pos_res::Float64, vel_res::Float64)
     ego_space = get_ego_states(env, pos_res, vel_res);
     for (i, s) in enumerate(ego_space)
-        if i != ego_state_index(env, s, pos_res, vel_res)
+        if i != ego_stateindex(env, s, pos_res, vel_res)
             return false
         end
     end
@@ -13,7 +13,7 @@ end
 function test_car_space(env::UrbanEnv, pos_res::Float64, vel_res::Float64)
     car_space = get_car_states(env, pos_res, vel_res);
     for (i, s) in enumerate(car_space)
-        if i != car_state_index(env, s, pos_res, vel_res)
+        if i != car_stateindex(env, s, pos_res, vel_res)
             return false
         end
     end
@@ -25,7 +25,7 @@ function test_car_indexing(env::UrbanEnv, pos_res::Float64, vel_res::Float64)
     for route in routes
         car_states = get_car_states(env, route, pos_res, vel_res)
         for (i, car) in enumerate(car_states)
-            car_i = car_state_index(env, car, route, pos_res, vel_res)
+            car_i = car_stateindex(env, car, route, pos_res, vel_res)
             if car_i != i
                 return false
             end
@@ -38,7 +38,7 @@ end
 function test_ped_space(env::UrbanEnv, pos_res::Float64, vel_res::Float64)
     ped_space = get_ped_states(env, pos_res, vel_res);
     for (i, s) in enumerate(ped_space)
-        if i != ped_state_index(env, s, pos_res, vel_res)
+        if i != ped_stateindex(env, s, pos_res, vel_res)
             return false
         end
     end

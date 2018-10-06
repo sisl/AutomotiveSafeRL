@@ -122,7 +122,7 @@ function POMDPStorm.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction},s::Urban
     # compute risk vector
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
-        si = state_index(mask.mdp, ss)
+        si = stateindex(mask.mdp, ss)
         p_sa += itp_weights[i]*mask.risk_mat[si,:]
     end
     safe_acts = PedMDPAction[]

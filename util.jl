@@ -2,7 +2,7 @@ function evaluation_loop(mdp::MDP, policy::Policy; n_ep::Int64 = 1000, max_steps
     rewards = zeros(n_ep)
     steps = zeros(n_ep)
     violations = zeros(n_ep)
-    d0 = initial_state_distribution(mdp)
+    d0 = initialstate_distribution(mdp)
     @showprogress for ep=1:n_ep
         s0 = rand(rng, d0)
         hr = HistoryRecorder(max_steps=max_steps, rng=rng)
@@ -20,7 +20,7 @@ function evaluation_loop(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_s
     violations = zeros(n_ep)
     up = PreviousObservationUpdater{obs_type(pomdp)}()
     @showprogress for ep=1:n_ep
-        s0 = initial_state(pomdp, rng)
+        s0 = initialstate(pomdp, rng)
         o0 = generate_o(pomdp, s0, rng)
         b0 = initialize_belief(up, o0)
         hr = HistoryRecorder(max_steps=max_steps, rng=rng)
@@ -33,7 +33,7 @@ function evaluation_loop(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_s
 end
 
 function evaluate(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::AbstractRNG)
-    s0 = initial_state(pomdp, rng)
+    s0 = initialstate(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
     up = PreviousObservationUpdater{UrbanObs}()
     b0 = initialize_belief(up, o0)

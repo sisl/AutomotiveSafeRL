@@ -21,7 +21,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, mask::SafetyMask{GridWorld,
     for s in iterator(states(mdp))
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
-            i = state_index(mdp, s)
+            i = stateindex(mdp, s)
             yval = mdp.size_y - yval
             println(o, "\\definecolor{currentcolor}{RGB}{$(r[i]),$(g[i]),$(b[i])}")
             println(o, "\\fill[currentcolor] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")
@@ -34,7 +34,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, mask::SafetyMask{GridWorld,
     for s in iterator(states(mdp))
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
-            i = state_index(mdp, s)
+            i = stateindex(mdp, s)
             yval = mdp.size_y - yval + 1
             c = [xval, yval] * sqsize - sqsize / 2
             C = [c'; c'; c']'
@@ -76,7 +76,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, policy::Policy, state=GridW
     for s in iterator(states(mdp))
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
-            i = state_index(mdp, s)
+            i = stateindex(mdp, s)
             yval = 10 - yval
             println(o, "\\definecolor{currentcolor}{RGB}{$(r[i]),$(g[i]),$(b[i])}")
             println(o, "\\fill[currentcolor] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")
@@ -89,7 +89,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, policy::Policy, state=GridW
     for s in iterator(states(mdp))
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
-            i = state_index(mdp, s)
+            i = stateindex(mdp, s)
             yval = mdp.size_y - yval + 1
             c = [xval, yval] * sqsize - sqsize / 2
             C = [c'; c'; c']'
@@ -129,7 +129,7 @@ function POMDPModels.plot(mdp::GridWorld, V::Vector, state=GridWorldState(0,0,tr
     for s in iterator(states(mdp))
         if !s.done
             (xval, yval) = (s.x, mdp.size_y-s.y+1)
-            i = state_index(mdp, s)
+            i = stateindex(mdp, s)
             yval = mdp.size_y - yval
             println(o, "\\definecolor{currentcolor}{RGB}{$(r[i]),$(g[i]),$(b[i])}")
             println(o, "\\fill[currentcolor] ($((xval-1) * sqsize),$((yval) * sqsize)) rectangle +($sqsize,$sqsize);")

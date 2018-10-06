@@ -9,7 +9,7 @@ function best_action(acts::Vector{A}, val::Array{Float32, 2}, problem::M) where 
     best_ai = 1 
     best_val = val[best_ai]
     for a in acts 
-        ai = action_index(problem, a)
+        ai = actionindex(problem, a)
         if val[ai] > best_val 
             best_val = val[ai]
             best_ai = ai 

@@ -114,17 +114,17 @@ function POMDPStorm.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, Car
     s_mdp = get_carmdp_state(mask.mdp, pomdp, s)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
-    # si = state_index(mdp, itp_states[indmax(itp_weights)])
+    # si = stateindex(mdp, itp_states[indmax(itp_weights)])
     # p_sa = mask.risk_mat[si, :]
 #     p_sa_itp = zeros(length(itp_states), n_actions(mask.mdp))
 #     for (i, ss) in enumerate(itp_states)
-#         si = state_index(mask.mdp, ss)
+#         si = stateindex(mask.mdp, ss)
 #         p_sa_itp[i, :] += itp_weights[i]*mask.risk_mat[si,:]
 #     end
 #     p_sa = minimum(p_sa_itp, 1)
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
-        si = state_index(mask.mdp, ss)
+        si = stateindex(mask.mdp, ss)
         p_sa += itp_weights[i]*mask.risk_mat[si,:]
     end
     safe_acts = CarMDPAction[]

@@ -19,11 +19,11 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMD
     s_mdp = get_mdp_state(mask.mdp, pomdp, s, car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
-    # si = state_index(mdp, itp_states[indmax(itp_weights)])
+    # si = stateindex(mdp, itp_states[indmax(itp_weights)])
     # p_sa = mask.risk_mat[si, :]
 #     p_sa_itp = zeros(length(itp_states), n_actions(mask.mdp))
 #     for (i, ss) in enumerate(itp_states)
-#         si = state_index(mask.mdp, ss)
+#         si = stateindex(mask.mdp, ss)
 #         p_sa_itp[i, :] += itp_weights[i]*mask.risk_mat[si,:]
 #     end
 #     p_sa = minimum(p_sa_itp, 1)
@@ -114,7 +114,7 @@ end
 #     if !s.crash && isterminal(policy.mdp, s)
 #         return ones(n_actions(policy.mdp))
 #     else
-#         si = state_index(policy.mdp, s)
+#         si = stateindex(policy.mdp, s)
 #         return policy.qmat[si, :]
 #     end
 # end

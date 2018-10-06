@@ -6,7 +6,7 @@ function generate_trajectory(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64
     n_obstacles = pomdp.max_obstacles 
     max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
     speed_limit = pomdp.env.params.speed_limit
-    s0 = initial_state(pomdp, rng)
+    s0 = initialstate(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
     up = PreviousObservationUpdater()
     b0 = o0
