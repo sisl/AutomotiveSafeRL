@@ -128,7 +128,7 @@ function POMDPStorm.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction},s::Urban
     safe_acts = PedMDPAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, mask.actions[indmax(p_sa)])
+        push!(safe_acts, mask.actions[argmax(p_sa)])
     else
         for (j, a) in enumerate(mask.actions)
             if p_sa[j] > mask.threshold

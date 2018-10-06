@@ -229,7 +229,7 @@ function POMDPs.action(policy::MaskedEpsGreedyPolicy, s)
     if rand(rng) < policy.epsilon
         return rand(rng, acts)
     else
-        acts[indmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
+        acts[argmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
     end
 end
 
@@ -240,7 +240,7 @@ end
 
 function POMDPs.action(policy::MaskedValuePolicy, s)
     acts = get_safe_actions(policy.mask, s)
-    return acts[indmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
+    return acts[argmax(policy.val.value_table[stateindex(policy.val.mdp, s), actionindex(policy.val.mdp, a)] for a in acts)]
 end
 
 
@@ -250,7 +250,7 @@ end
 # bad_states = Set(mdp.reward_states[mdp.reward_values .< 0.])
 # good_states = Set(mdp.reward_states[mdp.reward_values .> 0.])
 # # good_states = Set(GridWorldState[])
-# # good_states = Set([mdp.reward_states[indmax(mdp.reward_values)]])
+# # good_states = Set([mdp.reward_states[argmax(mdp.reward_values)]])
 # max_iterations = 100
 # verbose = true
 # function compute_reachability(mdp::GridWorld, bad_states::Set{GridWorldState}; max_iterations::Int64=100, verbose::Bool=false)

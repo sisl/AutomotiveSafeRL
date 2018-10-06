@@ -114,7 +114,7 @@ function POMDPStorm.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, Car
     s_mdp = get_carmdp_state(mask.mdp, pomdp, s)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
-    # si = stateindex(mdp, itp_states[indmax(itp_weights)])
+    # si = stateindex(mdp, itp_states[argmax(itp_weights)])
     # p_sa = mask.risk_mat[si, :]
 #     p_sa_itp = zeros(length(itp_states), n_actions(mask.mdp))
 #     for (i, ss) in enumerate(itp_states)
@@ -130,7 +130,7 @@ function POMDPStorm.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, Car
     safe_acts = CarMDPAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, mask.actions[indmax(p_sa)])
+        push!(safe_acts, mask.actions[argmax(p_sa)])
     else
         for (j, a) in enumerate(mask.actions)
             if p_sa[j] > mask.threshold

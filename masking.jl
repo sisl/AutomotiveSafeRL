@@ -19,7 +19,7 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMD
     s_mdp = get_mdp_state(mask.mdp, pomdp, s, car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
-    # si = stateindex(mdp, itp_states[indmax(itp_weights)])
+    # si = stateindex(mdp, itp_states[argmax(itp_weights)])
     # p_sa = mask.risk_mat[si, :]
 #     p_sa_itp = zeros(length(itp_states), n_actions(mask.mdp))
 #     for (i, ss) in enumerate(itp_states)
@@ -36,7 +36,7 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMD
     sizehint!(safe_acts, n_actions(mask.mdp))
     action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, action_space[indmax(p_sa)])
+        push!(safe_acts, action_space[argmax(p_sa)])
     else
         for (j, a) in enumerate(action_space)
             if p_sa[j] > mask.threshold
@@ -88,7 +88,7 @@ function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, P}, s::UrbanStat
     sizehint!(safe_acts, n_actions(mask.mdp))
     action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, action_space[indmax(p_sa)])
+        push!(safe_acts, action_space[argmax(p_sa)])
     else
         for (j, a) in enumerate(action_space)
             if p_sa[j] > mask.threshold
@@ -142,7 +142,7 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCa
     sizehint!(safe_acts, n_actions(mask.mdp))
     action_space = actions(mask.mdp)
     if maximum(p_sa) <= mask.threshold
-        push!(safe_acts, action_space[indmax(p_sa)])
+        push!(safe_acts, action_space[argmax(p_sa)])
     else
         for (j, a) in enumerate(action_space)
             if p_sa[j] > mask.threshold
