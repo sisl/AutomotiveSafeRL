@@ -104,7 +104,7 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    lidar=false,
                    ego_start=20,
                    ΔT=0.5)
-pomdp.action_cost = -0.01
+pomdp.action_cost = 0.0
 pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 
