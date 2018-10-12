@@ -9,14 +9,14 @@ function animate_states(pomdp::M, states::Vector{S}, actions::Vector{A}, mask::S
         safe_acts =[a.acc for a in safe_actions(mask, states[frame_index])]
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays, TextOverlay(text = ["Acc: $(actions[frame_index].acc)"],
+                cat(overlays, TextOverlay(text = ["Acc: $(actions[frame_index].acc)"],
                                             font_size=20,
                                             pos=VecE2(0.,8.),
                                             incameraframe=true),
                                 TextOverlay(text = ["Available Actions: $safe_acts"],
                                             font_size=20,
                                             pos=VecE2(0.,10.),
-                                            incameraframe=true)),
+                                            incameraframe=true), dims=(1,)),
                 cam=cam,
                 car_colors=get_colors(scene))
     end
@@ -34,7 +34,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
         safe_acts =[a.acc for a in safe_actions(pomdp, mask, states[frame_index])]
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays,InterpolationOverlay(mask.mdp, pomdp),
+                cat(overlays,InterpolationOverlay(mask.mdp, pomdp),
                                 TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,6.),
@@ -50,7 +50,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
                                 TextOverlay(text = ["step: $frame_index"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,4.),
-                                            incameraframe=true)),
+                                            incameraframe=true), dims=(1,)),
                 cam=cam,
                 car_colors=get_colors(scene))
     end
@@ -75,13 +75,13 @@ function animate_states(pomdp::UrbanPOMDP,
         frame_index = Int(floor(t/dt)) + 1
         scene = states[frame_index] #state2scene(mdp, states[frame_index])
         safe_acts = [a.acc for a in safe_actions[frame_index]]
-        probs = [round(p, 5) for p in probas[frame_index]]
+        probs = [round(p, digits=5) for p in probas[frame_index]]
         r1, r2 = routes[frame_index]
         obs = obs_to_scene(pomdp, observations[frame_index])
         if !obsviz
             obs_overlay = SceneOverlay[]
         else
-            obs_overlay = [GaussianSensorOverlay(sensor=pomdp.sensor, o=[veh for veh in obs if veh.id != EGO_ID])]
+            obs_overlay = [GaussianSensorOverlay(sensor=GaussianSensor(), o=[veh for veh in obs if veh.id != EGO_ID])]
         end
         if !interp
             itp_overlay = SceneOverlay[]
@@ -90,7 +90,7 @@ function animate_states(pomdp::UrbanPOMDP,
         end       
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays,itp_overlay..., obs_overlay...,
+                cat(overlays,itp_overlay..., obs_overlay...,
                                 TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,4.),
@@ -114,7 +114,7 @@ function animate_states(pomdp::UrbanPOMDP,
                                 TextOverlay(text = ["route: ($(r1.segment), $(r1.lane)), ($(r2.segment), $(r2.lane))"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,-7.),
-                                            incameraframe=true)),
+                                            incameraframe=true), dims=(1,)),
                 cam=cam,
                 car_colors=get_colors(scene))
     end
@@ -132,7 +132,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
         safe_acts = [a.acc for a in safe_actions[frame_index]]
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays, TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
+                cat(overlays, TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,6.),
                                             incameraframe=true),
@@ -147,7 +147,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
                                 TextOverlay(text = ["step: $frame_index"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,4.),
-                                            incameraframe=true)),
+                                            incameraframe=true), dims=(1,)),
                 cam=cam,
                 car_colors=get_colors(scene))
     end
@@ -171,7 +171,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
         end
         return AutoViz.render(scene,
                 pomdp.env,
-                cat(1, overlays,itp_overlays...,
+                cat(overlays,itp_overlays...,
                                 TextOverlay(text = ["v: $(get_ego(scene).state.v)"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,6.),
@@ -191,7 +191,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
                                 TextOverlay(text = ["step: $frame_index"],
                                             font_size=20,
                                             pos=VecE2(pomdp.env.params.x_min + 3.,4.),
-                                            incameraframe=true)),
+                                            incameraframe=true), dims=(1,)),
                 cam=cam,
                 car_colors=get_colors(scene))
     end
@@ -300,27 +300,81 @@ function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay
     end    
 end
 
-# function animate_states(mdp::PedMDP, states::Vector{PedMDPState}, actions::Vector{PedMDPAction}, mask::SafetyMask;
-#                         overlays=SceneOverlay[IDOverlay()],
-#                         cam=StaticCamera(VecE2(0, -5.), 17.))
-#     duration = length(states)*mdp.ΔT
-#     fps = Int(1/mdp.ΔT)    
-#     function render_states(t, dt)
-#         frame_index = Int(floor(t/dt)) + 1
-#         scene = state2scene(mdp, states[frame_index])
-#         safe_acts =[a.acc for a in safe_actions(mask, states[frame_index])]
-#         return AutoViz.render(scene,
-#                 mdp.env,
-#                 cat(1, overlays, TextOverlay(text = ["Acc: $(actions[frame_index].acc)"],
-#                                             font_size=20,
-#                                             pos=VecE2(0.,8.),
-#                                             incameraframe=true),
-#                                 TextOverlay(text = ["Available Actions: $safe_acts"],
-#                                             font_size=20,
-#                                             pos=VecE2(0.,10.),
-#                                             incameraframe=true)),
-#                 cam=cam,
-#                 car_colors=get_colors(scene))
-#     end
-#     return duration, fps, render_states
-# end
+function AutomotivePOMDPs.animate_hist(pomdp::UrbanPOMDP, 
+                                         scenes::Vector{Scene}, 
+                                         observations::Vector{Vector{Float64}}, 
+                                         beliefs::Vector{PedCarRNNBelief}, 
+                                         actions::Vector{UrbanAction},
+                                         safe_actions::Vector{Any};
+                                         sim_dt = 0.1,
+                                         cam = StaticCamera(VecE2(0., -8.), 14.0))
+    env = pomdp.env 
+    duration = length(scenes)*sim_dt
+    fps = Int(1/sim_dt)
+    function render_rec(t, dt)
+        frame_index = Int(floor(t/dt)) + 1
+        overlays = SceneOverlay[IDOverlay()]
+        obs = [veh for veh in obs_to_scene(pomdp, observations[frame_index]) if veh.id != EGO_ID]
+        obs_overlay = GaussianSensorOverlay(sensor=pomdp.sensor, o=obs, color=MONOKAI["color2"])
+        push!(overlays, obs_overlay)
+        occlusion_overlay = OcclusionOverlay(obstacles=mdp.env.obstacles)
+        push!(overlays, occlusion_overlay)
+        cp, pp = 0., 0.
+        for pred in beliefs[frame_index].predictions
+            bb, car_pres, ped_pres = process_prediction(pomdp, pred, beliefs[frame_index].obs)
+            cp += car_pres
+            pp += ped_pres
+            bel = [veh for veh in obs_to_scene(pomdp, bb) if veh.id != EGO_ID]
+            bel_overlay = GaussianSensorOverlay(sensor=pomdp.sensor, o=bel, color=MONOKAI["color4"])            
+            push!(overlays, bel_overlay)
+        end
+        cp /= length(beliefs[frame_index].predictions)
+        pp /= length(beliefs[frame_index].predictions)
+        push!(overlays, HistogramOverlay(pos=VecE2(-15., -20.), val=cp, label="car"))
+        push!(overlays, HistogramOverlay(pos=VecE2(-12., -20.), val=pp, label="ped"))
+        push!(overlays, TextOverlay(text=["Probability of presence"], pos=VecSE2(-17,-14.), font_size=15, incameraframe=true))
+        push!(overlays, TextOverlay(text = ["v: $(get_ego(scenes[frame_index]).state.v)"], font_size=20, 
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,6.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["Acc: $(actions[frame_index].acc)"], font_size=20,
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,8.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["Available Actions: $([a.acc for a in safe_actions[frame_index]])"], font_size=20,
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,10.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["step: $frame_index"], font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,4.), incameraframe=true))
+                                
+        return AutoViz.render(scenes[frame_index], env, overlays, cam=cam)
+    end
+    return duration, fps, render_rec
+end
+
+function AutomotivePOMDPs.animate_hist(pomdp::UrbanPOMDP, 
+                                         scenes::Vector{Scene}, 
+                                         observations::Vector{Vector{Float64}}, 
+                                         actions::Vector{UrbanAction},
+                                         safe_actions::Vector{Any};
+                                         sim_dt = 0.1,
+                                         cam = StaticCamera(VecE2(0., -8.), 14.0))
+    env = pomdp.env 
+    duration = length(scenes)*sim_dt
+    fps = Int(1/sim_dt)
+    function render_rec(t, dt)
+        frame_index = Int(floor(t/dt)) + 1
+        overlays = SceneOverlay[IDOverlay()]
+        obs = [veh for veh in obs_to_scene(pomdp, observations[frame_index]) if veh.id != EGO_ID]
+        obs_overlay = GaussianSensorOverlay(sensor=GaussianSensor(), o=obs, color=MONOKAI["color2"])
+        push!(overlays, obs_overlay)
+        occlusion_overlay = OcclusionOverlay(obstacles=mdp.env.obstacles)
+        push!(overlays, occlusion_overlay)
+        push!(overlays, TextOverlay(text = ["v: $(get_ego(scenes[frame_index]).state.v)"], font_size=20, 
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,6.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["Acc: $(actions[frame_index].acc)"], font_size=20,
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,8.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["Available Actions: $([a.acc for a in safe_actions[frame_index]])"], font_size=20,
+                                    pos=VecE2(pomdp.env.params.x_min + 3.,10.), incameraframe=true))
+        push!(overlays, TextOverlay(text = ["step: $frame_index"], font_size=20,
+                                            pos=VecE2(pomdp.env.params.x_min + 3.,4.), incameraframe=true))
+                                
+        return AutoViz.render(scenes[frame_index], env, overlays, cam=cam)
+    end
+    return duration, fps, render_rec
+end

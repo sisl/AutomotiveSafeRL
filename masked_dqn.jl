@@ -4,7 +4,7 @@ Uses a global variable mask that should be defined in main prior to including th
 =#
 
 
-function best_action(acts::Vector{A}, val::Array{Float32, 2}, problem::M) where {A, M <: Union{POMDP, MDP}}
+function best_action(acts::Vector{A}, val::AbstractArray{T}, problem::M) where {A, T <: Real, M <: Union{POMDP, MDP}}
     all_actions = actions(problem)
     best_ai = 1 
     best_val = val[best_ai]
@@ -67,15 +67,29 @@ end
 
 ###
 
-struct MaskedDQNPolicy{P <: POMDP, M <: Union{SafetyMask, JointMask}} <: Policy
+struct MaskedNNPolicy{P <: POMDP, N <: AbstractNNPolicy, M <: Union{SafetyMask, JointMask}} <: Policy
     problem::P
-    q::DQNPolicy
+    q::N
     mask::M
 end
 
-function POMDPs.action(policy::MaskedDQNPolicy, s)
+function POMDPs.action(policy::MaskedNNPolicy, s)
     acts = safe_actions(policy.problem, policy.mask, s)
     val = value(policy.q, s)
     act = best_action(acts, val, policy.problem)
     return act 
+end
+
+function POMDPModelTools.action_info(policy::MaskedNNPolicy, s)
+    acts = safe_actions(policy.problem, policy.mask, s)
+    val = value(policy.q, s)
+    act = best_action(acts, val, policy.problem)
+    probas = compute_probas(policy.problem, policy.mask, s)
+    ss = obs_to_scene(policy.problem, s)
+    route = get_mdp_state(policy.mask.mdp, policy.problem, ss, PED_ID, CAR_ID).route
+    return act, (acts, probas, route)
+end
+
+function DeepQLearning.reset_hidden_state!(policy::MaskedNNPolicy)
+    return DeepQLearning.reset_hidden_state!(policy.q)
 end
