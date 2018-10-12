@@ -1,11 +1,13 @@
+using Distributed
 N_PROCS=56
 addprocs(N_PROCS)
 rng = MersenneTwister(1)
 @everywhere begin 
-    using POMDPs, POMDPToolbox, DiscreteValueIteration
+    using POMDPs, POMDPModelTools, DiscreteValueIteration
     using AutomotivePOMDPs, AutomotiveDrivingModels
-    using JLD, StaticArrays
-
+    using BSON
+    using StaticArrays
+    #=
     function DiscreteValueIteration.ind2state(mdp::PedCarMDP, si::Int64)
         n_ego = n_ego_states(mdp.env, mdp.pos_res, mdp.vel_res)
         n_ped = n_ped_states(mdp.env, mdp.pos_res, mdp.vel_ped_res)
@@ -57,7 +59,7 @@ rng = MersenneTwister(1)
             return PedCarMDPState(collision, ego, ped, car, sroute)
         end
     end
-
+    =#
 end # @everywhere
 
 
@@ -69,7 +71,7 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCarMDP(env=env, pos_res=2.0, vel_res=2.0, ped_birth=0.7, car_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
+mdp = PedCarMDP(env=env, pos_res=3.0, vel_res=2.0, ped_birth=0.7, car_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
 
 # reachability analysis
 mdp.collision_cost = 0.
@@ -77,17 +79,17 @@ mdp.γ = 1.
 mdp.goal_reward = 1.
 
 solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=10, belres=1e-4, include_Q=true, verbose=true)
-policy_file = "pc_util_fast_mem.jld"
+policy_file = "pedcar_util.bson"
 #policy = ValueIterationPolicy(mdp, include_Q=true)
 if isfile(policy_file)
-  data = load(policy_file)
-  solver.init_util = data["util"]
+  BSON.@load policy_file util qmat pol
+  solver.init_util = util
 end
 policy = solve(solver, mdp)
-JLD.save(policy_file, "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
+bson(policy_file, util=policy.util, qmat=policy.qmat, pol=policy.policy)
 
 solver.init_util = policy.util
 policy = solve(solver, mdp) # resume
 
-JLD.save(policy_file, "util", policy.util, "qmat", policy.qmat, "pol", policy.policy)
-JLD.save("pedcar_policy3.jld", "policy", policy)
+bson(policy_file, util=policy.util, qmat=policy.qmat, pol=policy.policy)
+bson("pedcar_policy.bson", policy=policy)

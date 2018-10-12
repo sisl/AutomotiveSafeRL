@@ -9,6 +9,7 @@ using AutomotivePOMDPs
 using AutomotiveSensors
 using PedCar
 using ArgParse
+using JLD2
 using FileIO
 using ProgressMeter
 include("RNNFiltering.jl")
@@ -53,27 +54,27 @@ pomdp = UrbanPOMDP(env=mdp.env,
 policy = RandomHoldPolicy(pomdp, 5, 0, UrbanAction(0.), rng);
 
 ## Generate data 
-folder = "./scratch/boutonm/"
+folder = "/scratch/boutonm/"
 max_steps = 400
-n_train = 30
-if !isfile(folder*"train_"*string(seed)*".bson")
+n_train = 3000
+if !isfile(folder*"train_"*string(seed)*".jld2")
     println("Generating $n_train examples of training data")
     train_X, train_Y = collect_set(pomdp, policy, max_steps, rng, n_train)
-    bson(folder*"train_"*string(seed)*".bson", train_X = train_X, train_Y = train_Y)
+    save(folder*"train_"*string(seed)*".jld2", "train_X", train_X, "train_Y", train_Y)
 else
-    println("Loading existing training data: "*"train_"*string(seed)*".bson")
-    train_data = BSON.load(folder*"train_"*string(seed)*".bson")
-    train_X, train_Y = train_data[:train_X], train_data[:train_Y]
+    println("Loading existing training data: "*"train_"*string(seed)*".jld2")
+    JLD2.@load folder*"train_"*string(seed)*".jld2" train_X train_Y
+    #train_X, train_Y = train_data[:train_X], train_data[:train_Y]
 end
-n_val = 30
+n_val = 500
 if !isfile(folder*"val_"*string(seed)*".bson")
     println("Generating $n_val examples of validation data")
     val_X, val_Y = collect_set(pomdp, policy, max_steps, rng, n_val)
-    bson(folder*"val_"*string(seed)*".bson", val_X=val_X, val_Y=val_Y)
+    save(folder*"val_"*string(seed)*".jld2", "val_X",val_X, "val_Y", val_Y)
 else
-    println("Loading existing validation data: "*"val_"*string(seed)*".bson")
-    val_data = BSON.load(folder*"val_"*string(seed)*".bson")
-    val_X, val_Y = val_data[:val_X], val_data[:val_Y]
+    println("Loading existing validation data: "*"val_"*string(seed)*".jld2")
+    JLD2.@load folder*"val_"*string(seed)*".jld2" val_X val_Y
+    #val_X, val_Y = val_data[:val_X], val_data[:val_Y]
 end
 
 if parsed_args["resume"] == -1
@@ -81,17 +82,17 @@ if parsed_args["resume"] == -1
 else
     model_name = "model_"*string(parsed_args["resume"])
 end
-if parsed_args["resume"] == -1
-    input_length = n_dims(pomdp) 
-    n_features = 5
-    output_length = n_features*(pomdp.max_cars + pomdp.max_peds)
+input_length = n_dims(pomdp) 
+n_features = 5
+output_length = n_features*(pomdp.max_cars + pomdp.max_peds)
 
-    model = Chain(LSTM(input_length, 128),
+model = Chain(LSTM(input_length, 128),
               Dense(128, 64, relu),
               Dense(64, output_length))
-else
+if parsed_args["resume"] != -1
     println("Loading existing model")
-    model = BSON.load(model_name*".bson")[:model]
+    BSON.@load "weights_$(parsed_args["resume"])"*".bson" weights
+    Flux.loadparams!(model, weights)
 end
 
 macro interrupts(ex)
@@ -147,7 +148,8 @@ function training!(loss, train_data, validation_data, optimizer, n_epochs::Int64
         # @tb_log validation_loss
         # set_tb_step!(ep)
         # @tb_log grad_norm
-        @save model_name*".bson" model
+        weights = Tracker.data.(params(model))
+        BSON.@save "weights_$seed"*".bson" weights
         logg = @sprintf("%5d / %5d Train loss %0.3e |  Val loss %1.3e | Grad %2.3e | Epoch time (s) %2.1f | Total time (s) %2.1f",
                                 ep, n_epochs, training_loss, validation_loss, grad_norm, epoch_time, total_time)
         println(logg)
@@ -157,7 +159,7 @@ end
 
 optimizer = ADAM(Flux.params(model), 1e-3)
 
-n_epochs = 5
+n_epochs = 15
 training!(loss, zip(train_X, train_Y), zip(val_X, val_Y), optimizer, n_epochs, logdir="log/"*model_name)
 
 @save model_name*".bson" model

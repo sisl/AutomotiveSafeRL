@@ -1,5 +1,6 @@
 *.out
 *.jld
+*.jld2
 **/log*
 **/.ipynb_checkpoints
 *.lab
