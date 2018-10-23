@@ -33,7 +33,7 @@ s = ArgParseSettings()
     "--folder"
         help = "location of the training file"
         arg_type = String 
-        default = "/scratch/boutonm"
+        default = "/scratch/boutonm/"
 end
 parsed_args = parse_args(ARGS, s)
 
@@ -43,11 +43,12 @@ rng = MersenneTwister(seed)
 Random.seed!(seed)
 
 ## Load training and validation set
+folder = parsed_args["folder"]
 entity = parsed_args["entity"]
 println("Loading existing training data: "*"train_$(entity)_"*string(seed)*".jld2")
-JLD2.@load folder*"train_$(entity)_"*string(seed)*".jld2" train_X train_Y
-println("Loading existing training data: "*"val_$(entity)_"*"_"*string(seed)*".jld2")
-JLD2.@load folder*"val_$(entity)_"*string(seed)*".jld2" val_X val_Y
+train_X, train_Y = load(folder*"train_$(entity)_"*string(seed)*".jld2", "train_X_$(entity)", "train_Y_$(entity)")
+println("Loading existing training data: "*"val_$(entity)"*"_"*string(seed)*".jld2")
+val_X, val_Y = load(folder*"val_$(entity)_"*string(seed)*".jld2", "val_X_$(entity)", "val_Y_$(entity)")
 
 if parsed_args["resume"] == -1
     model_name = "model_$(entity)_"*string(parsed_args["seed"])
