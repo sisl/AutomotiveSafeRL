@@ -67,7 +67,7 @@ end
 
 ###
 
-struct MaskedNNPolicy{P <: POMDP, N <: AbstractNNPolicy, M <: Union{SafetyMask, JointMask}} <: Policy
+struct MaskedNNPolicy{P <: POMDP, N <: AbstractNNPolicy, M <: Union{SafetyMask, JointMask}} <: AbstractNNPolicy
     problem::P
     q::N
     mask::M
@@ -75,14 +75,15 @@ end
 
 function POMDPs.action(policy::MaskedNNPolicy, s)
     acts = safe_actions(policy.problem, policy.mask, s)
-    val = value(policy.q, s)
+    val = DeepQLearning.get_value!(policy.q, s)
     act = best_action(acts, val, policy.problem)
     return act 
 end
 
+
 function POMDPModelTools.action_info(policy::MaskedNNPolicy, s)
     acts = safe_actions(policy.problem, policy.mask, s)
-    val = value(policy.q, s)
+    val = DeepQLearning.get_value!(policy.q, s)
     act = best_action(acts, val, policy.problem)
     probas = compute_probas(policy.problem, policy.mask, s)
     ss = obs_to_scene(policy.problem, s)
