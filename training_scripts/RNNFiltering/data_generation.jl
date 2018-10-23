@@ -61,12 +61,38 @@ function generate_split_trajectories(pomdp::UrbanPOMDP, policy::Policy, max_step
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
     hist = simulate(hr, pomdp, policy, up, b0, s0)
     # extract data from the history 
-    X_car = Vector{SVector{2*pomdp.n_features + 1, Float64}}(undef, max_steps+1)
-    X_ped = Vector{SVector{2*pomdp.n_features + 1, Float64}}(undef, max_steps+1)
+    X_car = Vector{SVector{3*pomdp.n_features, Float64}}(undef, max_steps+1)
+    X_ped = Vector{SVector{3*pomdp.n_features, Float64}}(undef, max_steps+1)
     # build labels 
     Y_car = [zeros(n_features) for i=1:(max_steps+1)]
     Y_ped = [zeros(n_features) for i=1:(max_steps+1)]
     for (i, s) in enumerate(hist.state_hist)
+        if i==1
+            o = o0
+        else
+            o = hist.observation_hist[i - 1]
+        end
+        ego, car_map, ped_map, obs_map = split_o(o, pomdp)
+        if haskey(car_map, CAR_ID)
+            car = car_map[CAR_ID]
+        else
+            car = normalized_off_the_grid_pos(pomdp, ego[1], ego[2])
+        end
+        if haskey(ped_map, PED_ID)
+            ped = ped_map[PED_ID]
+        else
+            ped = normalized_off_the_grid_pos(pomdp, ego[1], ego[2])
+        end
+        X_car[i] = vcat(ego, car, obs_map[1])
+        X_ped[i] = vcat(ego, ped, obs_map[1]) 
+        # X_car[i][1:pomdp.n_features] = o[1:pomdp.n_features] # ego
+        # X_ped[i][1:pomdp.n_features] = o[1:pomdp.n_features]
+        # car_ind = pomdp.n_features + 1
+        # ped_ind = 2*pomdp.n_features + 1
+        # X_car[i][car_ind:car_ind + pomdp.n_features] = o[car_ind:car_ind + pomdp.n_features] # car
+        # X_ped[i][pomdp.n_features + 1:2*pomdp.n_features + 1] = o[ped_ind:ped_ind + pomdp.n_features] # ped
+        # obs_ind = 2*pomdp.n_features + 1
+        # X_car[i][obs_ind:end] = o[3*pomdp.n_features + 1:end] # obs
         ego = get_ego(s).state
         sorted_vehicles = sort!([veh for veh in s], by=x->x.id)
         for veh in sorted_vehicles
