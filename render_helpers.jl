@@ -228,23 +228,27 @@ mutable struct InterpolationOverlay{M} <: SceneOverlay where {M <: Union{CarMDP,
     color::Colorant
     font_size::Int
     id::Int
-    mdp::M
-    pomdp::UrbanPOMDP
+    mdp::M 
+    models::Dict{Int64, DriverModel}
+    ped_id::Int64
+    car_id::Int64
     obs::Scene
+end
 
-    function InterpolationOverlay(mdp::M, pomdp::UrbanPOMDP, obs::Scene, id::Int=2;
-        verbosity::Int=1,
-        color::Colorant=colorant"white",
-        font_size::Int=20,
-        ) where {M <: Union{CarMDP, PedMDP, PedCarMDP}}
 
-        new{M}(verbosity, color, font_size, id, mdp, pomdp, obs)
-    end
+function InterpolationOverlay(mdp::M, models::Dict{Int64, DriverModel}, obs::Scene; id::Int=1,
+    verbosity::Int=1,
+    color::Colorant=colorant"white",
+    font_size::Int=20,
+    ped_id::Int64 = PED_ID,
+    car_id::Int64 = CAR_ID) where {M <: Union{CarMDP, PedMDP, PedCarMDP}}
+
+    InterpolationOverlay{M}(verbosity, color, font_size, id, mdp, models, ped_id, car_id, obs)
 end
 
 function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay{PedCarMDP}, scene::Scene, env::OccludedEnv)
-    transparency = 0.5
-    s_mdp = get_mdp_state(mask.mdp, pomdp, overlay.obs, 101, 2)
+    transparency = 0.2
+    s_mdp = get_mdp_state(mask.mdp, overlay.models, overlay.obs, overlay.ped_id, overlay.car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     for ss in itp_states 
         ci = ss.car
@@ -305,7 +309,7 @@ function AutomotivePOMDPs.animate_hist(pomdp::UrbanPOMDP,
                                          observations::Vector{Vector{Float64}}, 
                                          beliefs::Vector{PedCarRNNBelief}, 
                                          actions::Vector{UrbanAction},
-                                         safe_actions::Vector{Any};
+                                         safe_actions::Vector{Vector{UrbanAction}};
                                          sim_dt = 0.1,
                                          cam = StaticCamera(VecE2(0., -8.), 14.0))
     env = pomdp.env 

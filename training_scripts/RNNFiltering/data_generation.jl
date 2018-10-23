@@ -102,11 +102,11 @@ function process_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Flo
     return b_, car_presence, ped_presence
 end
 
-function normalized_off_the_grid_pos(pomdp::UrbanPOMDP,normalized_ego_x::Float64, normalized_ego_y::Float64)
-    pos_off = get_off_the_grid(pomdp)
-    max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
-    return [pos_off.posG.x/max_ego_dist - normalized_ego_x, pos_off.posG.y/max_ego_dist - normalized_ego_y, pos_off.posG.θ, 0.]
-end
+# function normalized_off_the_grid_pos(pomdp::UrbanPOMDP,normalized_ego_x::Float64, normalized_ego_y::Float64)
+#     pos_off = get_off_the_grid(pomdp)
+#     max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
+#     return [pos_off.posG.x/max_ego_dist - normalized_ego_x, pos_off.posG.y/max_ego_dist - normalized_ego_y, pos_off.posG.θ, 0.]
+# end
 
 
 # # init continuous state mdp 

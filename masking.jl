@@ -110,15 +110,6 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCa
     return safe_actions(mask, o[:], PED_ID, CAR_ID)
 end
 
-# function MDPModelChecking.value_vector(policy::ValueIterationPolicy, s::PedCarMDPState)
-#     if !s.crash && isterminal(policy.mdp, s)
-#         return ones(n_actions(policy.mdp))
-#     else
-#         si = stateindex(policy.mdp, s)
-#         return policy.qmat[si, :]
-#     end
-# end
-
 function MDPModelChecking.safe_actions(mask::SafetyMask{M, LocalApproximationValueIterationPolicy}, o::Array{Float64}) where M <: Union{PedMDP, PedCarMDP}
     s = convert_s(state_type(mask.mdp), o, mask.mdp)
     return safe_actions(mask, s)
