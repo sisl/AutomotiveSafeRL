@@ -37,30 +37,40 @@ end
 
 function POMDPs.action(policy::MaskedNNPolicy, b::PedCarRNNBelief)
     safe_acts = safe_actions(policy.problem, policy.mask, b)
-    val = value(policy.q, b)
+    val = action_value(policy.q, b)
     act = best_action(safe_acts, val, policy.problem)
     return act
 end
 
-function POMDPs.value(policy::P, b::PedCarRNNBelief) where {P <: AbstractNNPolicy}
+function action_value(policy::MaskedNNPolicy, b::PedCarRNNBelief)
+    return DeepQLearning.get_value!(policy, b)
+end
+
+function DeepQLearning.get_value!(policy::MaskedNNPolicy, b::PedCarRNNBelief)
+    n_features = 4
+    pomdp = policy.problem
+    vals = zeros(n_actions(pomdp))
+    for i=1:length(b.predictions)
+        bb, _ = process_prediction(pomdp, b.predictions[i], b.obs)
+        vals += DeepQLearning.get_value(policy.q, bb)[:]
+    end
+    return vals./length(b.predictions)
+end
+
+function DeepQLearning.get_value!(policy::AbstractNNPolicy, b::PedCarRNNBelief)
     n_features = 4
     pomdp = policy.env.problem
     vals = zeros(n_actions(pomdp))
     for i=1:length(b.predictions)
         bb, _ = process_prediction(pomdp, b.predictions[i], b.obs)
-        vals += value(policy, bb)[:]
+        vals += DeepQLearning.get_value!(policy, bb)[:]
     end
     return vals./length(b.predictions)
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief) where P <: Policy
-    vals = zeros(n_actions(pomdp))
-    for i=1:length(b.predictions)
-        bb, _ = process_prediction(pomdp, b.predictions[i], b.obs)
-        s = obs_to_scene(pomdp, b.obs)
-        vals += compute_probas(pomdp, mask, s, PED_ID, CAR_ID)# need to change b
-    end
-    vals ./= length(b.predictions)
+
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief, ped_id::Int64=PED_ID, car_id::Int64=CAR_ID) where P <: Policy
+    vals = compute_probas(pomdp, mask, b, ped_id, car_id)
     
     safe_acts = UrbanAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
@@ -77,6 +87,20 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCa
     return safe_acts
 end
 
+function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief, ped_id::Int64=PED_ID, car_id::Int64=CAR_ID) where P <: Policy
+    vals = zeros(n_actions(pomdp))
+    for i=1:length(b.predictions)
+        bb, _ = process_prediction(pomdp, b.predictions[i], b.obs)
+        s = obs_to_scene(pomdp, b.obs)
+        vals += compute_probas(pomdp, mask, s, ped_id, car_id)# need to change b
+    end
+    vals ./= length(b.predictions)
+    return vals
+end
+
+function AutomotivePOMDPs.obs_to_scene(pomdp::UrbanPOMDP, b::PedCarRNNBelief)
+    return obs_to_scene(pomdp, b.obs)
+end
 
 ## Perfect Updater no obstacles 
 struct PerfectSensorUpdater <: Updater
