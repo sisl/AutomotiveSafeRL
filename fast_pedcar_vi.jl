@@ -6,6 +6,7 @@ rng = MersenneTwister(1)
 @everywhere begin 
     using Printf
     using POMDPs, POMDPModelTools, DiscreteValueIteration
+    using POMDPSimulators
     using AutomotivePOMDPs, AutomotiveDrivingModels
     using BSON, StaticArrays
     using JLD2
@@ -37,10 +38,11 @@ mdp.collision_cost = 0.
 mdp.γ = 1.
 mdp.goal_reward = 1.
 
-solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=2, belres=1e-4, include_Q=true, verbose=true)
-policy_file = "pedcar_util.jld2"
+solver = ParallelValueIterationSolver(n_procs=N_PROCS, max_iterations=20, belres=1e-4, include_Q=true, verbose=true)
+policy_file = "pedcar_utility.jld2"
 #policy = ValueIterationPolicy(mdp, include_Q=true)
 if isfile(policy_file)
+  println("Loading policy file $policy_file")
   JLD2.@load policy_file qmat util pol 
   solver.init_util = util
 end
