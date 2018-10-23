@@ -19,11 +19,14 @@ using BSON: @save
 export
     generate_trajectory,
     collect_set,
+    generate_split_trajectories,
+    collect_split_set, 
     global_norm,
     training!,
     RandomHoldPolicy,
     process_prediction,
-    build_presence_mask
+    build_presence_mask,
+    build_single_presence_mask
 
 
 function build_presence_mask(y::Vector{Float64}, car_pres_ind=5, ped_pres_ind=10)
@@ -36,6 +39,14 @@ function build_presence_mask(y::Vector{Float64}, car_pres_ind=5, ped_pres_ind=10
     end
     if y[ped_pres_ind] == 0.
         mask[ped_pres_ind-n_features+1:ped_pres_ind-1] .= 0.
+    end
+    return mask
+end
+
+function build_single_presence_mask(y::Vector{Float64})
+    mask = ones(length(y))
+    if y[end] == 0. # car absent 
+        mask[1:end-1] .= 0.
     end
     return mask
 end
