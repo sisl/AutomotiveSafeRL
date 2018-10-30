@@ -116,6 +116,7 @@ function RNNFiltering.training!(loss, train_data, validation_data, optimizer, n_
         end
         validation_loss /= length(validation_data)
         weights = Tracker.data.(params(model))
+        BSON.@save model_name*".bson" model
         BSON.@save "weights_$(entity)_$seed"*".bson" weights
         logg = @sprintf("%5d / %5d Train loss %0.3e |  Val loss %1.3e | Grad %2.3e | Epoch time (s) %2.1f | Total time (s) %2.1f",
                                 ep, n_epochs, training_loss, validation_loss, grad_norm, epoch_time, total_time)

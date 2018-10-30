@@ -61,8 +61,8 @@ function generate_split_trajectories(pomdp::UrbanPOMDP, policy::Policy, max_step
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
     hist = simulate(hr, pomdp, policy, up, b0, s0)
     # extract data from the history 
-    X_car = Vector{SVector{3*pomdp.n_features, Float64}}(undef, max_steps+1)
-    X_ped = Vector{SVector{3*pomdp.n_features, Float64}}(undef, max_steps+1)
+    X_car = [zeros(3*pomdp.n_features) for i=1:max_steps+1]
+    X_ped = [zeros(3*pomdp.n_features) for i=1:max_steps+1]
     # build labels 
     Y_car = [zeros(n_features) for i=1:(max_steps+1)]
     Y_ped = [zeros(n_features) for i=1:(max_steps+1)]
