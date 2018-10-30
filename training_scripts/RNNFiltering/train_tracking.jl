@@ -107,7 +107,7 @@ function RNNFiltering.training!(loss, train_data, validation_data, optimizer, n_
         end
         # log 
         total_time += epoch_time
-        training_loss /= n_epochs
+        training_loss /= n_epochs #should be length(train_X)
         println("eval validation loss")
         validation_loss = 0. 
         for d in validation_data

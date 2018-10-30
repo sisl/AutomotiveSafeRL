@@ -45,9 +45,9 @@ end
 
 function build_single_presence_mask(y::Vector{Float64})
     mask = ones(length(y))
-    #if y[end] == 0. # car absent 
-    #    mask[1:end-1] .= 0.
-    #end
+    if y[end] == 0. # car absent 
+       mask[1:end-1] .= 0.
+    end
     return mask
 end
 
