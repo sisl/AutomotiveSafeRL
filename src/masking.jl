@@ -1,9 +1,3 @@
-# XXX uses global variable POMDP
-# function MDPModelChecking.safe_actions(mask::SafetyMask{CarMDP, CarMDPAction}, o::UrbanObs, ped_id=2)
-#     s = obs_to_scene(pomdp, o)
-#     return safe_actions(pomdp, mask, s, ped_id)
-# end
-
 function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMDP, P}, o::UrbanObs) where P <: Policy
     s = obs_to_scene(pomdp, o)
     return safe_actions(pomdp, mask, s, CAR_ID)
@@ -52,18 +46,10 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{CarMD
     return safe_acts
 end
 
-
-#XXX uses global variable POMDP
-# function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, PedMDPAction}, o::UrbanObs, ped_id=101)
-#     s = obs_to_scene(pomdp, o)
-#     return safe_actions(mask, s, ped_id)
-# end
-
 function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedMDP, P}, o::UrbanObs) where P <: Policy
     s = obs_to_scene(pomdp, o)
     return safe_actions(mask, s, PED_ID)
 end
-
 
 function MDPModelChecking.safe_actions(mask::SafetyMask{PedMDP, P}, o::Array{Float64, 2}) where P <: Policy
     d, dd = size(o)
@@ -179,6 +165,11 @@ struct RandomMaskedPOMDPPolicy{M} <: Policy
     rng::AbstractRNG
 end
 
+struct SafePOMDPPolicy{M} <: Policy
+    mask::M 
+    pomdp::UrbanPOMDP
+end
+
 function POMDPs.action(policy::RandomMaskedPOMDPPolicy, s)
     acts = safe_actions(policy.pomdp, policy.mask, s)
     if isempty(acts)
@@ -197,6 +188,12 @@ function POMDPModelTools.action_info(policy::RandomMaskedPOMDPPolicy{M}, s) wher
     return action(policy, s), (sa, probas, route)
 end
 
+function POMDPs.action(policy::SafePOMDPPolicy{M}, s) where M 
+    probas = compute_probas(policy.pomdp, policy.mask, s)
+    ai = argmax(probas)
+    return actions(policy.pomdp)[ai]
+end
+
 
 struct JointMask{P <: MDP, M <: SafetyMask, I}
     problems::Vector{P}
@@ -211,21 +208,3 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::JointMask, s::S)
     end
     return acts       
 end
-
-# struct MaskedEpsGreedyPolicyPOMDP{M} <: Policy where {M <: SafetyMask}
-#     val::ValuePolicy # the greedy policy
-#     epsilon::Float64
-#     mask::M
-#     pomdp::UrbanPOMDP
-# end
-
-# MaskedEpsGreedyPolicyPOMDP{S, A, M}(mdp::MDP{S, A}, pomdp::UrbanPOMDP, epsilon::Float64, mask::M, rng::AbstractRNG) = MaskedEpsGreedyPolicy(ValuePolicy(mdp), epsilon, mask, rng)
-
-# function POMDPs.action(policy::MaskedEpsGreedyPolicyPOMDP, s)
-#     acts = safe_actions(policy.pomdp, policy.mask, s)
-#     if rand(policy.rng) < policy.epsilon
-#         return rand(policy.rng, acts)
-#     else
-#         return best_action(acts, policy.val, s)
-#     end
-# end

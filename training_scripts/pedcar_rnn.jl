@@ -3,10 +3,11 @@ using StaticArrays
 using ProgressMeter
 using Parameters
 using JLD2
-using BSON: @load
+using BSON
 using AutomotiveDrivingModels
 using POMDPs
 using POMDPModelTools
+using POMDPPolicies
 using GridInterpolations
 using DiscreteValueIteration
 using LocalApproximationValueIteration
@@ -16,6 +17,7 @@ using MDPModelChecking
 using DeepQLearning
 using DeepRL
 using PedCar
+using Flux
 using ArgParse
 using Printf
 rng = MersenneTwister(1)
@@ -35,7 +37,7 @@ s = ArgParseSettings()
     "--logdir"
         help = "log directory"
         arg_type = String
-        default = "log"
+        default = "log/"
     "--max_steps"
         help = "number of training steps"
         arg_type = Int64
@@ -48,20 +50,6 @@ s = ArgParseSettings()
         help = "frequency to run evaluation"
         arg_type = Int64
         default = 10000
-    "--n_hidden"
-        help = "n fully connected layers before lstm"
-        arg_type = Int64
-        default = 1
-    "--n_nodes"
-        arg_type = Int64
-        default = 32
-    "--lstm_size"
-        help = "lstm size"
-        arg_type = Int64
-        default = 64
-    "--gradclip"
-        help = "activate gradient clipping"
-        action = :store_true
     "--eps_fraction"
         help = "fraction of the training used for decaying epsilon"
         arg_type = Float64
@@ -73,16 +61,16 @@ s = ArgParseSettings()
 end
 parsed_args = parse_args(ARGS, s)
 
-include("../util.jl")
-include("../masking.jl")
-include("../masked_dqn.jl")
+include("../src/util.jl")
+include("../src/masking.jl")
+include("../src/masked_dqn.jl")
 
 # init mdp
 mdp = PedCarMDP(pos_res=2.0, vel_res=2., ped_birth=0.7, car_birth=0.7)
 init_transition!(mdp)
 
 # init safe policy
-@load "pc_processed.bson" qmat util pol
+@load "../pc_util_processed.jld2" qmat util pol
 safe_policy = ValueIterationPolicy(mdp, qmat, util, pol)
 
 # init mask
@@ -109,35 +97,29 @@ pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 
 
-fc_in = []
-for i=1:parsed_args["n_hidden"]
-    push!(fc_in, parsed_args["n_nodes"])
-end
-
-solver = DeepRecurrentQLearningSolver(arch=RecurrentQNetworkArchitecture(fc_in=fc_in, lstm_size=parsed_args["lstm_size"]),
+solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32), LSTM(32, 64), Dense(64,32), Dense(32, n_actions(pomdp))),
                              max_steps = parsed_args["max_steps"],
-                             lr = parsed_args["lr"],
+                             learning_rate = parsed_args["lr"],
                              batch_size = 32,
                              trace_length = parsed_args["trace_length"],
                              target_update_freq = parsed_args["target_update_freq"],
-                             buffer_size = 400000,
+                             buffer_size = 400_000,
                              eps_fraction = parsed_args["eps_fraction"],
                              eps_end = parsed_args["eps_end"],
-                             train_start = 10000, #10k
+                             train_start = 10_000, #10k
                              train_freq = 4,
                              eval_freq = parsed_args["eval_freq"],
+                             save_freq = 10_000,
+                             recurrence = true,
                              double_q = true,
                              dueling = true,
                              logdir="drqn-log/"*parsed_args["logdir"],
                              max_episode_length = 100,
-                             grad_clip=parsed_args["gradclip"],
                              exploration_policy = masked_linear_epsilon_greedy(parsed_args["max_steps"], parsed_args["eps_fraction"], parsed_args["eps_end"], mask),
                              evaluation_policy = masked_evaluation(mask),
                              verbose = true,
                              rng = rng
                             )
 
-env = POMDPEnvironment(pomdp)
-policy = solve(solver, env)
-# save weights!
-DeepQLearning.save(solver, policy, weights_file=solver.logdir*"/weights.bson", problem_file=solver.logdir*"/problem.bson")
+policy = solve(solver, pomdp)
+bson(solver.logdir*"model.bson", Dict(:qnetwork => solver.qnetwork))

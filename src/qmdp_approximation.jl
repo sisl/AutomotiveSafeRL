@@ -37,33 +37,29 @@ end
 
 function POMDPs.action(policy::MaskedNNPolicy, b::PedCarRNNBelief)
     safe_acts = safe_actions(policy.problem, policy.mask, b)
-    val = action_value(policy.q, b)
+    val = actionvalues(policy.q, b)
     act = best_action(safe_acts, val, policy.problem)
     return act
 end
 
-function action_value(policy::MaskedNNPolicy, b::PedCarRNNBelief)
-    return DeepQLearning.get_value!(policy, b)
-end
-
-function DeepQLearning.get_value!(policy::MaskedNNPolicy, b::PedCarRNNBelief)
+function POMDPPolicies.actionvalues(policy::MaskedNNPolicy, b::PedCarRNNBelief)
     n_features = 4
     pomdp = policy.problem
     vals = zeros(n_actions(pomdp))
     for i=1:length(b.predictions)
         bb, _ = RNNFiltering.process_prediction(pomdp, b.predictions[i], b.obs)
-        vals += DeepQLearning.get_value(policy.q, bb)[:]
+        vals += actionvalues(policy.q, bb)[:]
     end
     return vals./length(b.predictions)
 end
 
-function DeepQLearning.get_value!(policy::AbstractNNPolicy, b::PedCarRNNBelief)
+function POMDPPolicies.actionvalues(policy::AbstractNNPolicy, b::PedCarRNNBelief)
     n_features = 4
     pomdp = policy.env.problem
     vals = zeros(n_actions(pomdp))
     for i=1:length(b.predictions)
         bb, _ = RNNFiltering.process_prediction(pomdp, b.predictions[i], b.obs)
-        vals += DeepQLearning.get_value!(policy, bb)[:]
+        vals += actionvalues(policy, bb)[:]
     end
     return vals./length(b.predictions)
 end

@@ -24,9 +24,9 @@ function masked_linear_epsilon_greedy(max_steps::Int64, eps_fraction::Float64, e
     # define function that will be called to select an action in DQN
     # only supports MDP environments
     function action_masked_epsilon_greedy(policy::AbstractNNPolicy, env::POMDPEnvironment, obs, global_step::Int64, rng::AbstractRNG)
-        eps = update_epsilon(global_step, eps_fraction, eps_end, max_steps)
+        eps = DeepQLearning.update_epsilon(global_step, eps_fraction, eps_end, max_steps)
         acts = safe_actions(pomdp, mask, obs)
-        val = get_value!(policy, obs)
+        val = actionvalues(policy, obs)
         if rand(rng) < eps
             return (rand(rng, acts), eps)
         else
@@ -44,10 +44,10 @@ function masked_evaluation(mask::M) where M <: Union{SafetyMask, JointMask}
             r_tot = 0.0
             step = 0
             obs = reset(env)
-            DeepQLearning.reset_hidden_state!(policy)
+            DeepQLearning.reset!(policy)
             while !done && step <= max_episode_length
                 acts = safe_actions(pomdp, mask, obs)
-                val = get_value!(policy, obs)
+                val = actionvalues(policy, obs)
                 act = best_action(acts, val, env.problem)
                 obs, rew, done, info = step!(env, act)
                 r_tot += rew 
@@ -64,9 +64,6 @@ function masked_evaluation(mask::M) where M <: Union{SafetyMask, JointMask}
     return masked_evaluation_policy
 end
 
-
-###
-
 struct MaskedNNPolicy{P <: POMDP, N <: AbstractNNPolicy, M <: Union{SafetyMask, JointMask}} <: AbstractNNPolicy
     problem::P
     q::N
@@ -75,15 +72,14 @@ end
 
 function POMDPs.action(policy::MaskedNNPolicy, s)
     acts = safe_actions(policy.problem, policy.mask, s)
-    val = DeepQLearning.get_value!(policy.q, s)
+    val = actionvalues(policy.q, s)
     act = best_action(acts, val, policy.problem)
     return act 
 end
 
-
 function POMDPModelTools.action_info(policy::MaskedNNPolicy, s)
     acts = safe_actions(policy.problem, policy.mask, s)
-    val = DeepQLearning.get_value!(policy.q, s)
+    val = actionvalues(policy.q, s)
     act = best_action(acts, val, policy.problem)
     probas = compute_probas(policy.problem, policy.mask, s)
     ss = obs_to_scene(policy.problem, s)
@@ -91,6 +87,6 @@ function POMDPModelTools.action_info(policy::MaskedNNPolicy, s)
     return act, (acts, probas, route)
 end
 
-function DeepQLearning.reset_hidden_state!(policy::MaskedNNPolicy)
-    return DeepQLearning.reset_hidden_state!(policy.q)
+function DeepQLearning.reset!(policy::MaskedNNPolicy)
+    return DeepQLearning.reset!(policy.q)
 end
