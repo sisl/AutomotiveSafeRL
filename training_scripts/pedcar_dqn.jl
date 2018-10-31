@@ -97,7 +97,7 @@ pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 
 
-solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32), LSTM(32, 64), Dense(64,32), Dense(32, n_actions(pomdp))),
+solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32, relu), Dense(32, 64, relu), Dense(64,32, relu), Dense(32, n_actions(pomdp))),
                              max_steps = parsed_args["max_steps"],
                              learning_rate = parsed_args["lr"],
                              batch_size = 32,
@@ -110,7 +110,8 @@ solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32), LSTM(32, 6
                              train_freq = 4,
                              eval_freq = parsed_args["eval_freq"],
                              save_freq = 10_000,
-                             recurrence = true,
+                             recurrence = false,
+                             prioritized_replay=true,
                              double_q = true,
                              dueling = true,
                              logdir="drqn-log/"*parsed_args["logdir"],
