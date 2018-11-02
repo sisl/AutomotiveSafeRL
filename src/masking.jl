@@ -194,6 +194,14 @@ function POMDPs.action(policy::SafePOMDPPolicy{M}, s) where M
     return actions(policy.pomdp)[ai]
 end
 
+function POMDPModelTools.action_info(policy::SafePOMDPPolicy{M}, s) where M 
+    sa = safe_actions(policy.pomdp, policy.mask, s)
+    probas = compute_probas(policy.pomdp, policy.mask, s)
+    ss = obs_to_scene(policy.pomdp, s)
+    route = get_mdp_state(policy.mask.mdp, policy.pomdp, ss, PED_ID, CAR_ID).route
+    return action(policy, s), (sa, probas, route)
+end
+
 
 struct JointMask{P <: MDP, M <: SafetyMask, I}
     problems::Vector{P}
