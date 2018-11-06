@@ -8,6 +8,8 @@ using AutomotiveDrivingModels
 using POMDPs
 using POMDPModelTools
 using POMDPPolicies
+using POMDPSimulators
+using BeliefUpdaters
 using GridInterpolations
 using DiscreteValueIteration
 using LocalApproximationValueIteration
@@ -15,7 +17,7 @@ using AutomotiveSensors
 using AutomotivePOMDPs
 using MDPModelChecking
 using DeepQLearning
-using DeepRL
+using RLInterface
 using PedCar
 using Flux
 using ArgParse
@@ -122,9 +124,17 @@ solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32, relu), Dens
                              rng = rng
                             )
 
-policy = solve(solver, pomdp)
+dqn_policy = solve(solver, pomdp)
 bson(solver.logdir*"model.bson", Dict(:qnetwork => solver.qnetwork))
+# qnetwork = BSON.load("../training_scripts/drqn-log/log12/model.bson")[:qnetwork]
+# dqn_policy = NNPolicy(pomdp, qnetwork, actions(pomdp), 1)
+policy = MaskedNNPolicy(pomdp, dqn_policy, mask);
 
-pomdp.ΔT = 0.1
 @time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, n_ep=100, max_steps=400, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
+
+# DQN Evaluation to check consistency
+scores_eval = DeepQLearning.evaluation(solver.evaluation_policy, dqn_policy, POMDPEnvironment(pomdp),                                  
+                         1000,
+                         400,
+                         true)
