@@ -63,16 +63,16 @@ s = ArgParseSettings()
 end
 parsed_args = parse_args(ARGS, s)
 
-include("../src/util.jl")
 include("../src/masking.jl")
 include("../src/masked_dqn.jl")
+include("../src/util.jl")
 
 # init mdp
 mdp = PedCarMDP(pos_res=2.0, vel_res=2., ped_birth=0.7, car_birth=0.7)
 init_transition!(mdp)
 
 # init safe policy
-@load "../pc_util_processed.jld2" qmat util pol
+@load "../pc_util_processed_low.jld2" qmat util pol
 safe_policy = ValueIterationPolicy(mdp, qmat, util, pol)
 
 # init mask
@@ -94,7 +94,7 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    lidar=false,
                    ego_start=20,
                    ΔT=0.5)
-pomdp.action_cost = 0.0
+pomdp.action_cost = -0.01
 pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 
@@ -130,6 +130,7 @@ bson(solver.logdir*"model.bson", Dict(:qnetwork => solver.qnetwork))
 # dqn_policy = NNPolicy(pomdp, qnetwork, actions(pomdp), 1)
 policy = MaskedNNPolicy(pomdp, dqn_policy, mask);
 
+pomdp.action_cost = 0.
 @time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, n_ep=100, max_steps=400, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
 

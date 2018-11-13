@@ -113,8 +113,7 @@ function MDPModelChecking.actionvalues(policy::LocalApproximationValueIterationP
     end
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
-    p_sa = compute_probas(pomdp, mask, s, ped_id, car_id)
+function MDPModelChecking.safe_actions(mask::SafetyMask, p_sa::Vector{Float64})
     safe_acts = UrbanAction[]
     sizehint!(safe_acts, n_actions(mask.mdp))
     action_space = actions(mask.mdp)
@@ -130,6 +129,12 @@ function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCa
     return safe_acts
 end
 
+
+function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
+    p_sa = compute_probas(pomdp, mask, s, ped_id, car_id)
+    return safe_actions(mask, p_sa)
+end
+
 function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, o::UrbanObs) where P <: Policy
     s = obs_to_scene(pomdp, o)
     return compute_probas(pomdp, mask, s, PED_ID, CAR_ID)
@@ -143,10 +148,14 @@ end
 
 function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, s::UrbanState, ped_id, car_id) where P <: Policy
     s_mdp = PedCar.get_mdp_state(mask.mdp, pomdp, s, ped_id, car_id)
+    # println("route s_mdp : ", s_mdp.route)
+    # println("projected pedestrian : ", s_mdp.ped)
+    # println("original pedestrian : ", s[findfirst(ped_id, s)])
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     # compute risk vector
     p_sa = zeros(n_actions(mask.mdp))
     for (i, ss) in enumerate(itp_states)
+        # println("interpolated ped: ", ss.ped)
         vals = actionvalues(mask.policy, ss)
         p_sa += itp_weights[i]*vals
     end

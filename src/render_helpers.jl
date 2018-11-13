@@ -248,7 +248,7 @@ end
 
 function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay{PedCarMDP}, scene::Scene, env::OccludedEnv)
     transparency = 0.2
-    s_mdp = get_mdp_state(mask.mdp, overlay.models, overlay.obs, overlay.ped_id, overlay.car_id)
+    s_mdp = get_mdp_state(overlay.mdp, overlay.models, overlay.obs, overlay.ped_id, overlay.car_id)
     itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
     for ss in itp_states 
         ci = ss.car
