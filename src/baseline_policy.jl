@@ -3,8 +3,20 @@ struct EgoBaseline <: Policy
     model::DriverModel
 end
 
+mutable struct MaskedEgoBaseline <: Policy
+    pomdp::UrbanPOMDP
+    pedcar_pomdp::UrbanPOMDP
+    model::DriverModel
+    mask::SafetyMask
+    sa::Vector{UrbanAction}
+end
+
 function POMDPs.action(policy::EgoBaseline, o::UrbanObs)
     s = obs_to_scene(policy.pomdp, o)
+    return action(policy, s)
+end
+
+function POMDPs.action(policy::EgoBaseline, s::Scene)
     observe!(policy.model, s, policy.pomdp.env.roadway, EGO_ID)
     acts = [a.acc for a in ordered_actions(pomdp)]
     ai = argmin(abs.(policy.model.a.a_lon .- acts))
@@ -17,9 +29,56 @@ function POMDPModelTools.action_info(policy::EgoBaseline, o::UrbanObs)
 end
 
 function POMDPs.action(policy::EgoBaseline, b::MultipleAgentsBelief)
+    s = most_likely_scene(policy.pomdp, b)
+    action(policy, s)
 end
 
-function most_likely_scene(pomdp::UrbanPOMDP, b::MultipleAgentsBelief)
+function POMDPModelTools.action_info(policy::EgoBaseline, b::MultipleAgentsBelief)
+    s = most_likely_scene(policy.pomdp, b)
+    return action(policy, s), (s, policy.model.a.a_lon, deepcopy(policy.model))
+end
+
+function POMDPs.action(policy::MaskedEgoBaseline, s::Scene)
+    observe!(policy.model, s, policy.pomdp.env.roadway, EGO_ID)
+    acts = [a.acc for a in ordered_actions(pomdp)]
+    ai = argmin(abs.(policy.model.a.a_lon .- acts))
+    a = ordered_actions(pomdp)[ai]
+    if a ∈ policy.sa
+        return a 
+    else 
+        ai = argmax([a.acc for a in policy.sa])
+        return policy.sa[ai]
+    end
+end
+
+function POMDPs.action(policy::MaskedEgoBaseline, o::UrbanObs)
+    policy.sa = safe_actions(policy.pomdp, policy.mask, o)
+    s = obs_to_scene(policy.pomdp, o)
+    return action(policy, s)
+end
+
+function POMDPs.action(policy::MaskedEgoBaseline, b::MultipleAgentsBelief)
+    s = most_likely_scene(policy.pomdp, b)
+    observe!(policy.model, s, policy.pomdp.env.roadway, EGO_ID)
+    acts = [a.acc for a in ordered_actions(pomdp)]
+    ai = argmin(abs.(policy.model.a.a_lon .- acts))
+    a = ordered_actions(pomdp)[ai]
+    pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b)
+    if isempty(pedcar_beliefs)
+        return UrbanAction(2.0)
+    end
+    policy.sa, _ = safe_actions(policy.pedcar_pomdp, policy.mask, pedcar_beliefs)
+    if a ∈ policy.sa
+        return a 
+    else 
+        ai = argmax([a.acc for a in policy.sa])
+        return policy.sa[ai]
+    end
+end
+
+function POMDPModelTools.action_info(policy::MaskedEgoBaseline, o::UrbanObs)
+    a = action(policy, o)
+    return a, (policy.model.a.a_lon, policy.sa)
 end
 
 function get_ego_baseline_model(env::UrbanEnv)

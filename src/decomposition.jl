@@ -147,21 +147,18 @@ function evaluation_loop(pomdp::UrbanPOMDP, policy::Policy, up::MultipleAgentsTr
     steps = zeros(n_ep)
     violations = zeros(n_ep)
     @showprogress for ep=1:n_ep
-        delete!.(Ref(up.single_trackers), k for k in keys(up.single_trackers))
         s0 = initialstate(pomdp, rng)
         a0 = UrbanAction(0.)
-        empty_b = MultipleAgentsBelief(Dict{Int64, SingleAgentBelief}(), Vector{Float64}(), pomdp)
         o0 = generate_o(pomdp,s0, a0, s0, rng)
-        b0 = update(up, empty_b, a0, o0)
+        b0 = initialize_belief(up, o0)
         hr = HistoryRecorder(max_steps=100, rng=rng)
-        hist = simulate(hr, pomdp, dec_pol, up, b0, s0);
+        hist = simulate(hr, pomdp, policy, up, b0, s0);
         rewards[ep] = discounted_reward(hist)
         steps[ep] = n_steps(hist)
         violations[ep] = is_crash(hist.state_hist[end])#sum(hist.reward_hist .<= -1.) #+ Int(n_steps(hist) >= max_steps)
     end
     return rewards, steps, violations
 end
-
 
 # utility decomposition 
 
