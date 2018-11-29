@@ -65,7 +65,7 @@ function POMDPPolicies.actionvalues(policy::AbstractNNPolicy, b::PedCarRNNBelief
 end
 
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief, ped_id::Int64=PED_ID, car_id::Int64=CAR_ID) where P <: Policy
+function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief, ped_id::Int64=PED_ID, car_id::Int64=CAR_ID) where P <: Policy
     vals = compute_probas(pomdp, mask, b, ped_id, car_id)
     
     safe_acts = UrbanAction[]

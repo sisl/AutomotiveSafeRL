@@ -18,9 +18,9 @@ end
 
 function POMDPs.action(policy::EgoBaseline, s::Scene)
     observe!(policy.model, s, policy.pomdp.env.roadway, EGO_ID)
-    acts = [a.acc for a in ordered_actions(pomdp)]
+    acts = [a.acc for a in ordered_actions(policy.pomdp)]
     ai = argmin(abs.(policy.model.a.a_lon .- acts))
-    return ordered_actions(pomdp)[ai]
+    return ordered_actions(policy.pomdp)[ai]
 end
 
 function POMDPModelTools.action_info(policy::EgoBaseline, o::UrbanObs)

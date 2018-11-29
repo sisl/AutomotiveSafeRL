@@ -33,7 +33,7 @@ using BeliefUpdaters
 using POMDPPolicies
 using POMDPSimulators
 using POMDPModelTools
-using MDPModelChecking
+using POMDPModelChecking
 using LocalApproximationValueIteration
 using DiscreteValueIteration
 using RLInterface
@@ -179,9 +179,18 @@ println("Evaluating ", parsed_args["policy"], " policy with ", parsed_args["upda
 if parsed_args["scenario"] == "1-1"
     set_static_spec! = set_static_spec_scenario_1_1!
     initialscene_scenario = initialscene_scenario_1_1
-elseif parsed_args["scenario"] == " 1-2"
+elseif parsed_args["scenario"] == "1-2"
     set_static_spec! = set_static_spec_scenario_1_2!
     initialscene_scenario = initialscene_scenario_1_2
+elseif parsed_args["scenario"] == "2-1"
+    set_static_spec! = set_static_spec_scenario_2_1!
+    initialscene_scenario = initialscene_scenario_2_1
+elseif parsed_args["scenario"] == "2-2"
+    set_static_spec! = set_static_spec_scenario_2_2!
+    initialscene_scenario = initialscene_scenario_2_2
+elseif parsed_args["scenario"] == "3"
+    set_static_spec! = set_static_spec_scenario_3!
+    initialscene_scenario = initialscene_scenario_3
 end
 
 @time rewards, steps, violations = evaluation_loop(pomdp, policy, updater,
@@ -192,7 +201,7 @@ print_summary(rewards, steps, violations)
 
 ## Log output
 logfile=parsed_args["logfile"]
-df = DataFrame(scenario=parsed_args["scenario"], policy=parsed_args["policy"], updater=parsed_args["updater"],
+df = DataFrame(scenario=parsed_args["scenario"], policy=parsed_args["policy"], updater=parsed_args["updater"],n_episodes = N_EPISODES,
                reward_mean = mean(rewards), reward_std = std(rewards),
                steps_mean = mean(steps), steps_std = std(steps),
                violations_mean = mean(violations), violations_std = std(violations), time=Dates.now())
