@@ -22,7 +22,7 @@ function POMDPs.action(p::DecMaskedPolicy, b::Dict)
     return act
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
+function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
     safe_acts = Dict{Tuple{Int64, Int64}, Vector{UrbanAction}}()
     for (ids, bel) in b
         safe_acts[(ids[2], ids[1])] = safe_actions(pomdp, mask, bel, ids[2], ids[1]) 
@@ -168,7 +168,7 @@ end
 #     ped_mask::PM
 # end
 
-# function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
+# function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
 #     s = obs_to_scene(pomdp, o)
 #     action_sets = Vector{Vector{UrbanAction}}()
 #     np = 0
