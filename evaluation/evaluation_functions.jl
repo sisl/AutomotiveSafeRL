@@ -20,8 +20,8 @@ const TURN_RIGHT = SVector(LaneTag(3,1), LaneTag(5,1))
 const STRAIGHT_FROM_RIGHT = SVector(LaneTag(3,1), LaneTag(4,1))
 const STRAIGHT_FROM_LEFT = SVector(LaneTag(1,1), LaneTag(2,1))
 const TURN_LEFT = SVector(LaneTag(1,1), LaneTag(5,1))
-const RIGHT_OBSTACLE = ConvexPolygon([VecE2(8.125, -7.500), VecE2(26.875, -7.500), VecE2(26.875, -3.000), VecE2(8.125, -3.000)], 4)
-const LEFT_OBSTACLE = ConvexPolygon([VecE2(-26.875, -7.500),VecE2(-8.125, -7.500),VecE2(-8.125, -3.000),VecE2(-26.875, -3.000)], 4)
+const RIGHT_OBSTACLE = ConvexPolygon([VecE2(-26.875, -7.500),VecE2(-8.125, -7.500),VecE2(-8.125, -3.000),VecE2(-26.875, -3.000)], 4)
+const LEFT_OBSTACLE =  ConvexPolygon([VecE2(8.125, -7.500), VecE2(26.875, -7.500), VecE2(26.875, -3.000), VecE2(8.125, -3.000)], 4)
 const MAX_SPEED = 8.0
 const ROUTES = [TURN_RIGHT, TURN_LEFT, STRAIGHT_FROM_LEFT, STRAIGHT_FROM_RIGHT]
 const MAX_PEDESTRIAN_SPEED = 2.0
@@ -32,7 +32,7 @@ only one vehicle
 =#
 
 function set_static_spec_scenario_1_1!(pomdp::UrbanPOMDP)
-    empty_obstacles!(env)
+    empty_obstacles!(pomdp.env)
     pomdp.max_cars = 1
     pomdp.ped_birth = 0.
     pomdp.car_birth = 0.
@@ -43,7 +43,7 @@ function initialscene_scenario_1_1(pomdp::UrbanPOMDP, rng::AbstractRNG)
     roadway = pomdp.env.roadway
     car_s0 = rand(rng,0.:get_end(roadway[route[1]]))
     car_v0 = rand(rng, 0.:MAX_SPEED)
-    car_posF = Frenet(roadway[LaneTag(3, 1)], car_s0)
+    car_posF = Frenet(roadway[route[1]], car_s0)
     car = Vehicle(VehicleState(car_posF, roadway, car_v0), pomdp.car_type, 2)
     s0 = Scene()
     push!(s0, car)
@@ -62,13 +62,13 @@ function set_static_spec_scenario_1_2!(pomdp::UrbanPOMDP)
     pomdp.max_obstacles = 1
 end
 
-function initialscene_scenario_1_2(pomdp::UrbanPOMDP)
-    right = rand() > 1
+function initialscene_scenario_1_2(pomdp::UrbanPOMDP, rng::AbstractRNG)
+    right = rand() > 0.5
     if right 
-        env.obstacles = [RIGHT_OBSTACLE]
+        pomdp.env.obstacles = [RIGHT_OBSTACLE]
         route = STRAIGHT_FROM_RIGHT
     else
-        env.obstacles = [LEFT_OBSTACLE]
+        pomdp.env.obstacles = [LEFT_OBSTACLE]
         route = STRAIGHT_FROM_LEFT
     end
     roadway = pomdp.env.roadway
@@ -96,7 +96,7 @@ function set_static_spec_scenario_2_1!(pomdp::UrbanPOMDP)
 end
 
 function initialscene_scenario_2_1(pomdp::UrbanPOMDP, rng::AbstractRNG)
-    route = rand(rng, route)
+    route = rand(rng, ROUTES)
     roadway = pomdp.env.roadway
     car_s0 = rand(rng,0.:get_end(roadway[route[1]]))
     car_v0 = rand(rng, 0.:MAX_SPEED)
@@ -107,11 +107,14 @@ function initialscene_scenario_2_1(pomdp::UrbanPOMDP, rng::AbstractRNG)
     ped_s0 = rand(rng, 0.:get_end(crosswalk))
     ped_v0 = rand(rng, 0.:MAX_PEDESTRIAN_SPEED)
     ped_posF = Frenet(crosswalk, ped_s0) # choose between 17, 18, 19
-    ped = Vehicle(VehicleState(ped_posF, env.roadway, ped_v0), pomdp.ped_type, PED_ID)
+    ped = Vehicle(VehicleState(ped_posF, pomdp.env.roadway, ped_v0), pomdp.ped_type, PED_ID)
 
     s0 = Scene()
     push!(s0, car)
-    pomdp.models[2] = pomdp.car_models[route]
+    push!(s0, ped)
+    pomdp.models[CAR_ID] = pomdp.car_models[route]
+    new_ped_conflict_lanes = get_conflict_lanes(crosswalk, pomdp.env.roadway)
+    pomdp.models[PED_ID] = IntelligentPedestrian(dt = pomdp.ΔT, crosswalk=crosswalk, conflict_lanes=new_ped_conflict_lanes)    
     push!(s0, initial_ego(pomdp, rng))
 end
 
@@ -147,10 +150,10 @@ Scenario 3.3 scalability
 function set_static_spec_scenario_3!(pomdp::UrbanPOMDP)
     pomdp.max_cars = 3.
     pomdp.max_peds = 3.
-    pomdp.car_birth = 0.3
-    pomdp.ped_birth = 0.3
+    pomdp.car_birth = 0.1
+    pomdp.ped_birth = 0.1
     pomdp.max_obstacles = 1
-    obs_dist = ObstacleDistribution(mdp.env, 
+    pomdp.obs_dist = ObstacleDistribution(pomdp.env, 
                                 upper_obs_pres_prob=0., 
                                 left_obs_pres_prob=1.0, 
                                 right_obs_pres_prob=1.0)
