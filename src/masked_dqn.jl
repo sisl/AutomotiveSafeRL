@@ -26,7 +26,7 @@ function masked_linear_epsilon_greedy(max_steps::Int64, eps_fraction::Float64, e
     # only supports MDP environments
     function action_masked_epsilon_greedy(policy::AbstractNNPolicy, env::POMDPEnvironment, obs, global_step::Int64, rng::AbstractRNG)
         eps = DeepQLearning.update_epsilon(global_step, eps_fraction, eps_end, max_steps)
-        acts = safe_actions(pomdp, mask, obs)
+        acts = safe_actions(pomdp, mask, obs) #XXX using pomdp global variable replace by safe_actions(mask, obs)
         val = actionvalues(policy, obs)
         if rand(rng) < eps
             return (rand(rng, acts), eps)

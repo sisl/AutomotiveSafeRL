@@ -108,6 +108,12 @@ function POMDPs.update(up::SingleAgentTracker, bold::SingleAgentBelief, a::Urban
     return SingleAgentBelief(predictions, o, presence, up.single_pomdp)
 end
 
+function BeliefUpdaters.initialize_belief(up::MultipleAgentsTracker, o0::UrbanObs)
+    delete!.(Ref(up.single_trackers), k for k in keys(up.single_trackers))
+    empty_b = MultipleAgentsBelief(Dict{Int64, SingleAgentBelief}(), Vector{Float64}(), pomdp)
+    b0 = update(up, empty_b, UrbanAction(0.), o0)
+end
+
 function process_single_entity_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Float64}, pres_threshold::Float64=0.5)
     n_features = pomdp.n_features
     b_ = zeros(3*n_features) # should be 12 (2 vehicles 1 obstacle)
@@ -189,7 +195,8 @@ end
 
 function get_ped_normalized_absent_state(pomdp, ego)
     ego_x, ego_y, theta, v = ego
-    pos_off =  VecSE2(6.0, 3.0, float(pi)/2)
+    # pos_off =  VecSE2(6.0, 3.0, float(pi)/2)
+    pos_off = pomdp.off_grid
     max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
     return [pos_off.x/max_ego_dist - ego_x,
                     pos_off.y/max_ego_dist - ego_y,
@@ -199,7 +206,8 @@ end
 
 function get_car_normalized_absent_state(pomdp, ego)
     ego_x, ego_y, theta, v = ego
-    pos_off =  VecSE2( 26.0, -1.5, 0.)
+    # pos_off =  VecSE2( 26.0, -1.5, 0.)
+    pos_off = pomdp.off_grid
     max_ego_dist = get_end(pomdp.env.roadway[pomdp.ego_goal])
     return [pos_off.x/max_ego_dist - ego_x,
                     pos_off.y/max_ego_dist - ego_y,
@@ -215,11 +223,6 @@ function most_likely_scene(pomdp::UrbanPOMDP, b::MultipleAgentsBelief)
     for (id, sb) in b.single_beliefs
         avg_pred = mean(sb.predictions)
         veh_scene = obs_to_scene(sb.single_pomdp, avg_pred)
-        if !push_ego 
-            ego = veh_scene[findfirst(EGO_ID, veh_scene)]
-            push!(scene, ego)
-            push_ego = true
-        end
         vehind = id > 100 ? findfirst(PED_ID, veh_scene) : findfirst(CAR_ID, veh_scene)
         if vehind != 0
             veh = veh_scene[vehind]
