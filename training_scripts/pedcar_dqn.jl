@@ -15,7 +15,7 @@ using DiscreteValueIteration
 using LocalApproximationValueIteration
 using AutomotiveSensors
 using AutomotivePOMDPs
-using MDPModelChecking
+using POMDPModelChecking
 using DeepQLearning
 using RLInterface
 using PedCar
@@ -88,13 +88,13 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
-                   car_birth=0.7, 
-                   ped_birth=0.7, 
+                   car_birth=0.3, 
+                   ped_birth=0.3, 
                    max_obstacles=0, # no fixed obstacles
                    lidar=false,
                    ego_start=20,
                    ΔT=0.5)
-pomdp.action_cost = -0.01
+pomdp.action_cost = 0.0
 pomdp.collision_cost = -parsed_args["cost"]
 
 ### Training using DRQN 
@@ -118,8 +118,8 @@ solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32, relu), Dens
                              dueling = true,
                              logdir="drqn-log/"*parsed_args["logdir"],
                              max_episode_length = 100,
-                             exploration_policy = masked_linear_epsilon_greedy(parsed_args["max_steps"], parsed_args["eps_fraction"], parsed_args["eps_end"], mask),
-                             evaluation_policy = masked_evaluation(mask),
+                            #  exploration_policy = masked_linear_epsilon_greedy(parsed_args["max_steps"], parsed_args["eps_fraction"], parsed_args["eps_end"], mask),
+                            #  evaluation_policy = masked_evaluation(mask),
                              verbose = true,
                              rng = rng
                             )
@@ -128,10 +128,12 @@ dqn_policy = solve(solver, pomdp)
 bson(solver.logdir*"model.bson", Dict(:qnetwork => solver.qnetwork))
 # qnetwork = BSON.load("../training_scripts/drqn-log/log12/model.bson")[:qnetwork]
 # dqn_policy = NNPolicy(pomdp, qnetwork, actions(pomdp), 1)
-policy = MaskedNNPolicy(pomdp, dqn_policy, mask);
+# policy = MaskedNNPolicy(pomdp, dqn_policy, mask);
+policy = dqn_policy
 
 pomdp.action_cost = 0.
-@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, n_ep=100, max_steps=400, rng=rng);
+pomdp.collision_cost = -1.0
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, PreviousObservationUpdater(), n_ep=100, max_steps=400, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)
 
 # DQN Evaluation to check consistency
