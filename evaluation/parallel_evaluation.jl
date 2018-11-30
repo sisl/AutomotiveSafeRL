@@ -1,5 +1,5 @@
 using Distributed
-addprocs(2)
+addprocs(30)
 using ArgParse
 s = ArgParseSettings()
 @add_arg_table s begin
