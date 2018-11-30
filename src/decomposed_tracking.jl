@@ -58,9 +58,9 @@ function POMDPs.update(up::MultipleAgentsTracker, bold::MultipleAgentsBelief, a:
         absent_obs = vcat(ego, get_normalized_absent_state(up.pomdp, ego), obs)
         for class in (AgentClass.CAR, AgentClass.PEDESTRIAN)
             if class == AgentClass.CAR
-                new_id = pomdp.max_cars + obsid + 1
+                new_id = up.pomdp.max_cars + obsid + 1
             else
-                new_id = 100 + pomdp.max_peds + obsid + 1
+                new_id = 100 + up.pomdp.max_peds + obsid + 1
             end
             
             if haskey(up.single_trackers, new_id) && haskey(bold.single_beliefs, new_id)
@@ -110,7 +110,7 @@ end
 
 function BeliefUpdaters.initialize_belief(up::MultipleAgentsTracker, o0::UrbanObs)
     delete!.(Ref(up.single_trackers), k for k in keys(up.single_trackers))
-    empty_b = MultipleAgentsBelief(Dict{Int64, SingleAgentBelief}(), Vector{Float64}(), pomdp)
+    empty_b = MultipleAgentsBelief(Dict{Int64, SingleAgentBelief}(), Vector{Float64}(), up.pomdp)
     b0 = update(up, empty_b, UrbanAction(0.), o0)
 end
 

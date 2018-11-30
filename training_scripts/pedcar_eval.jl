@@ -29,7 +29,7 @@ env = UrbanEnv(params=params);
 mdp = PedCar.PedCarMDP(env=env, pos_res=2.0, vel_res=2.0, ped_birth=0.7, car_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
 init_transition!(mdp)
 
-@load "../pc_util_processed.jld2" qmat util pol
+@load "pc_util_processed_low.jld2" qmat util pol
 safe_policy = ValueIterationPolicy(mdp, qmat, util, pol)
 threshold = 0.99
 mask = SafetyMask(mdp, safe_policy, threshold);

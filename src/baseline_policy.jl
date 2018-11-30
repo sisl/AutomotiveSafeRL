@@ -60,9 +60,9 @@ end
 function POMDPs.action(policy::MaskedEgoBaseline, b::MultipleAgentsBelief)
     s = most_likely_scene(policy.pomdp, b)
     observe!(policy.model, s, policy.pomdp.env.roadway, EGO_ID)
-    acts = [a.acc for a in ordered_actions(pomdp)]
+    acts = [a.acc for a in ordered_actions(policy.pomdp)]
     ai = argmin(abs.(policy.model.a.a_lon .- acts))
-    a = ordered_actions(pomdp)[ai]
+    a = ordered_actions(policy.pomdp)[ai]
     pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b)
     if isempty(pedcar_beliefs)
         return UrbanAction(2.0)
