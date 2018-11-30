@@ -55,7 +55,7 @@ end
 
 function POMDPPolicies.actionvalues(policy::AbstractNNPolicy, b::PedCarRNNBelief)
     n_features = 4
-    pomdp = policy.env.problem
+    pomdp = policy.problem
     vals = zeros(n_actions(pomdp))
     for i=1:length(b.predictions)
         # bb, _ = RNNFiltering.process_prediction(pomdp, b.predictions[i], b.obs)
@@ -64,6 +64,11 @@ function POMDPPolicies.actionvalues(policy::AbstractNNPolicy, b::PedCarRNNBelief
     return vals./length(b.predictions)
 end
 
+function POMDPPolicies.action(policy::AbstractNNPolicy, b::PedCarRNNBelief)
+    vals = actionvalues(policy, b)
+    ai = argmax(vals)
+    return actions(policy.problem)[ai]
+end
 
 function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::PedCarRNNBelief, ped_id::Int64=PED_ID, car_id::Int64=CAR_ID) where P <: Policy
     vals = compute_probas(pomdp, mask, b, ped_id, car_id)

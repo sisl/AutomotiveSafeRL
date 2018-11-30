@@ -22,6 +22,26 @@ function POMDPs.action(p::DecMaskedPolicy, b::Dict)
     return act
 end
 
+struct DecPolicy{A <: Policy, P <: Union{MDP, POMDP}} <: Policy 
+    policy::A
+    problem::P 
+    op # reduction operator 
+end
+
+function POMDPPolicies.actionvalues(policy::DecPolicy, dec_belief::Dict)  # no hidden state!
+    return reduce(policy.op, actionvalues(policy.policy, b) for (_,b) in dec_belief)
+end
+
+function POMDPPolicies.action(p::DecPolicy, b::Dict)
+    if isempty(b)
+        return UrbanAction(2.0)
+    else
+        vals = actionvalues(p, b)
+        ai = argmax(vals)
+        return actions(p.problem)[ai]
+    end   
+end
+
 function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
     safe_acts = Dict{Tuple{Int64, Int64}, Vector{UrbanAction}}()
     for (ids, bel) in b
@@ -61,12 +81,12 @@ function POMDPModelTools.action_info(p::DecMaskedPolicy, b::Dict)
 end
 
 
-function POMDPs.action(policy::DecMaskedPolicy, b::MultipleAgentsBelief)
+function POMDPs.action(policy::Union{DecMaskedPolicy, DecPolicy}, b::MultipleAgentsBelief)
     pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b) #XXX is using global variable pomdp
     return action(policy, pedcar_beliefs)
 end
 
-function POMDPPolicies.actionvalues(policy::DecMaskedPolicy, b::MultipleAgentsBelief)
+function POMDPPolicies.actionvalues(policy::Union{DecMaskedPolicy, DecPolicy}, b::MultipleAgentsBelief)
     pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b) #XXX is using global variable pomdp
     return actionvalues(policy, pedcar_beliefs)
 end

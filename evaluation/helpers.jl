@@ -141,8 +141,13 @@ function load_policies_and_environment(policyname::String, updatername::String, 
         dqn_policy = NNPolicy(pedcar_pomdp, qnetwork, actions(pedcar_pomdp), 1)
         masked_policy = MaskedNNPolicy(pedcar_pomdp, dqn_policy, mask)
         policy = DecMaskedPolicy(masked_policy, mask, pedcar_pomdp, (x,y) -> min.(x,y))
+    elseif policyname == "RL"
+        qnetwork = BSON.load("../training_scripts/drqn-log/rl3model.bson")[:qnetwork]
+        weights = BSON.load("../training_scripts/drqn-log/rl3qnetwork.bson")[:qnetwork]
+        Flux.loadparams!(qnetwork, weights)
+        dqn_policy = NNPolicy(pedcar_pomdp, qnetwork, actions(pedcar_pomdp), 1)
+        policy = DecPolicy(dqn_policy, pedcar_pomdp, (x,y) -> min.(x,y))
     end
-
 
     # Evaluate
 

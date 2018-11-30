@@ -255,7 +255,7 @@ SingleAgentBeliefOverlay(b::SingleAgentBelief;  color = MONOKAI["color4"]) = Sin
 function AutoViz.render!(rendermodel::RenderModel, overlay::SingleAgentBeliefOverlay, scene::Scene, env::OccludedEnv)
     for pred in overlay.b.predictions
         bel = [veh for veh in obs_to_scene(overlay.b.single_pomdp, pred) if veh.id != EGO_ID]
-        AutoViz.render!(rendermodel, GaussianSensorOverlay(sensor=overlay.b.single_pomdp.sensor, o=bel, color=overlay.color), scene, env) 
+        AutoViz.render!(rendermodel, GaussianSensorOverlay(sensor=GaussianSensor(), o=bel, color=overlay.color), scene, env) 
     end
 end
 
@@ -283,7 +283,7 @@ function AutoViz.render!(rendermodel::RenderModel, overlay::PedCarBeliefOverlay,
     for pred in overlay.b.predictions 
 #         bb, _ = process_prediction(overlay.pomdp, pred, overlay.b.obs)
         bel = [veh for veh in obs_to_scene(overlay.pomdp, pred) if veh.id != EGO_ID]
-        bel_overlay = GaussianSensorOverlay(sensor=overlay.pomdp.sensor, o=bel, color=overlay.color)
+        bel_overlay = GaussianSensorOverlay(sensor=GaussianSensor(), o=bel, color=overlay.color)
         AutoViz.render!(rendermodel, bel_overlay, scene, env)
     end
 end
