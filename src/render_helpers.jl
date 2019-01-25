@@ -249,7 +249,7 @@ end
 function AutoViz.render!(rendermodel::RenderModel, overlay::InterpolationOverlay{PedCarMDP}, scene::Scene, env::OccludedEnv)
     transparency = 0.2
     s_mdp = get_mdp_state(overlay.mdp, overlay.models, overlay.obs, overlay.ped_id, overlay.car_id)
-    itp_states, itp_weights = interpolate_state(mask.mdp, s_mdp)
+    itp_states, itp_weights = interpolate_state(overlay.mdp, s_mdp)
     for ss in itp_states 
         ci = ss.car
         x, y, θ, v = ci.posG.x, ci.posG.y, ci.posG.θ, ci.v 
@@ -417,7 +417,7 @@ function animate_history(hist::POMDPHistory, pomdp::UrbanPOMDP;
         push!.(Ref(overlays), info_overlays(info))
         push!.(Ref(overlays), extra_overlays)
         push!.(Ref(overlays), step_overlays(frame_index))
-        AutoViz.render(s, env, overlays, cam=cam)
+        AutoViz.render(s, env, overlays, cam=cam, car_colors=get_colors(s))
     end
     film = roll(render, fps = speed_factor*fps, duration = duration/speed_factor)
     return film
