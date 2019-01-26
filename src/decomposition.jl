@@ -7,50 +7,88 @@ struct DecMaskedPolicy{A <: Policy, M <: SafetyMask, P <: Union{MDP, POMDP}} <: 
     op # reduction operator
 end
 
-function POMDPs.value(policy::DecMaskedPolicy, dec_belief::Dict)  # no hidden state!
-    return reduce(policy.op, action_value(policy.policy, b) for (_,b) in dec_belief)
+function POMDPPolicies.actionvalues(policy::DecMaskedPolicy, dec_belief::Dict)  # no hidden state!
+    return reduce(policy.op, actionvalues(policy.policy, b) for (_,b) in dec_belief)
 end
 
 function POMDPs.action(p::DecMaskedPolicy, b::Dict)
-    safe_acts = safe_actions(p.problem, p.mask, b)
-    val = value(p, b)
-    act = best_action(safe_acts, val, p.problem)
+    if isempty(b)
+        return UrbanAction(2.0)
+    else
+        safe_acts, _ = safe_actions(p.problem, p.mask, b)
+        val = actionvalues(p, b)
+        act = best_action(safe_acts, val, p.problem)
+    end
     return act
 end
 
-function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
+struct DecPolicy{A <: Policy, P <: Union{MDP, POMDP}} <: Policy 
+    policy::A
+    problem::P 
+    op # reduction operator 
+end
+
+function POMDPPolicies.actionvalues(policy::DecPolicy, dec_belief::Dict)  # no hidden state!
+    return reduce(policy.op, actionvalues(policy.policy, b) for (_,b) in dec_belief)
+end
+
+function POMDPPolicies.action(p::DecPolicy, b::Dict)
+    if isempty(b)
+        return UrbanAction(2.0)
+    else
+        vals = actionvalues(p, b)
+        ai = argmax(vals)
+        return actions(p.problem)[ai]
+    end   
+end
+
+function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
     safe_acts = Dict{Tuple{Int64, Int64}, Vector{UrbanAction}}()
     for (ids, bel) in b
         safe_acts[(ids[2], ids[1])] = safe_actions(pomdp, mask, bel, ids[2], ids[1]) 
     end
-    return reduce(intersect, values(safe_acts)), safe_acts
+    probs, probs_dict = compute_probas(pomdp, mask, b)
+    acts = safe_actions(mask, probs)
+    # reduce(intersect, values(safe_acts))
+    return acts, safe_acts
+end
+
+function compute_probas(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
+    probs_dict = Dict{Tuple{Int64, Int64}, Vector{Float64}}()
+    for (ids, bel) in b
+        probs_dict[(ids[2], ids[1])] = compute_probas(pomdp, mask, bel, ids[2], ids[1])
+    end
+    probs = reduce((x,y) -> min.(x,y), values(probs_dict))
+    return probs, probs_dict
 end
 
 function POMDPModelTools.action_info(p::DecMaskedPolicy, b::Dict)
-    # println("Beliefs keys: ", keys(b))
-    safe_acts, safe_acts_dict = safe_actions(p.problem, p.mask, b)
-    # compute probas
-    probs_dict = Dict{Tuple{Int64, Int64}, Vector{Float64}}()
-    for (ids, bel) in b
-        probs_dict[(ids[2], ids[1])] = compute_probas(p.problem, p.mask, bel, ids[2], ids[1])
+    if isempty(b)
+        return UrbanAction(2.0), (actions(pomdp), ones(n_actions(pomdp)),  Dict{Tuple{Int64, Int64}, Vector{Float64}}(), Dict{Tuple{Int64, Int64}, Vector{UrbanAction}}())
+    else
+        # println("Beliefs keys: ", keys(b))
+        safe_acts, safe_acts_dict = safe_actions(p.problem, p.mask, b)
+        # compute probas
+        probs_dict = Dict{Tuple{Int64, Int64}, Vector{Float64}}()
+        for (ids, bel) in b
+            probs_dict[(ids[2], ids[1])] = compute_probas(p.problem, p.mask, bel, ids[2], ids[1])
+        end
+        probs = reduce((x,y) -> min.(x,y), values(probs_dict))
+        val = actionvalues(p, b)
+        act = best_action(safe_acts, val, p.problem)
+        return act, (safe_acts, probs, probs_dict, safe_acts_dict)
     end
-    probs = reduce(min, values(probs_dict))
-    val = value(p, b)
-    act = best_action(safe_acts, val, p.problem)
-    return act, (safe_acts, probs, probs_dict, safe_acts_dict)
 end
 
 
-function POMDPs.action(policy::DecMaskedPolicy, b::MultipleAgentsBelief)
-    global pomdp
-    pedcar_beliefs = create_pedcar_beliefs(pomdp, b) #XXX is using global variable pomdp
+function POMDPs.action(policy::Union{DecMaskedPolicy, DecPolicy}, b::MultipleAgentsBelief)
+    pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b) #XXX is using global variable pomdp
     return action(policy, pedcar_beliefs)
 end
 
-function POMDPs.value(policy::DecMaskedPolicy, b::MultipleAgentsBelief)
-    global pomdp
-    pedcar_beliefs = create_pedcar_beliefs(pomdp, b) #XXX is using global variable pomdp
-    return value(policy, pedcar_beliefs)
+function POMDPPolicies.actionvalues(policy::Union{DecMaskedPolicy, DecPolicy}, b::MultipleAgentsBelief)
+    pedcar_beliefs = create_pedcar_beliefs(b.pomdp, b) #XXX is using global variable pomdp
+    return actionvalues(policy, pedcar_beliefs)
 end
 
 # function POMDPModelTools.action_info(policy::DecMaskedPolicy, b::MultipleAgentsBelief)
@@ -106,6 +144,41 @@ function create_pedcar_states(ego, car_map, ped_map, obs_map)
     return decomposed_state
 end
 
+struct MultipleInterpolatedBeliefsOverlay <: SceneOverlay
+    beliefs::Dict{NTuple{3, Int64}, PedCarRNNBelief}
+    pomdp::UrbanPOMDP
+    mdp::PedCarMDP
+    pedcar_pomdp::UrbanPOMDP
+    models::Dict{Int64, DriverModel}
+end
+
+function AutoViz.render!(rendermodel::RenderModel, overlay::MultipleInterpolatedBeliefsOverlay , scene::Scene, env::OccludedEnv)
+    for (ids, b) in overlay.beliefs 
+        for j=1:length(b.predictions)
+            obs = obs_to_scene(overlay.pedcar_pomdp, b.predictions[j])
+            itp_overlay = InterpolationOverlay(overlay.mdp, overlay.models, obs, car_id=ids[1], ped_id=ids[2]) #,)
+            render!(rendermodel, itp_overlay, scene, env)
+        end
+    end
+end
+
+function evaluation_loop(pomdp::UrbanPOMDP, policy::Policy, up::MultipleAgentsTracker; n_ep::Int64 = 1000, max_steps::Int64 = 500, rng::AbstractRNG = Base.GLOBAL_RNG)
+    rewards = zeros(n_ep)
+    steps = zeros(n_ep)
+    violations = zeros(n_ep)
+    @showprogress for ep=1:n_ep
+        s0 = initialstate(pomdp, rng)
+        a0 = UrbanAction(0.)
+        o0 = generate_o(pomdp,s0, a0, s0, rng)
+        b0 = initialize_belief(up, o0)
+        hr = HistoryRecorder(max_steps=100, rng=rng)
+        hist = simulate(hr, pomdp, policy, up, b0, s0);
+        rewards[ep] = discounted_reward(hist)
+        steps[ep] = n_steps(hist)
+        violations[ep] = is_crash(hist.state_hist[end])#sum(hist.reward_hist .<= -1.) #+ Int(n_steps(hist) >= max_steps)
+    end
+    return rewards, steps, violations
+end
 
 # utility decomposition 
 
@@ -115,7 +188,7 @@ end
 #     ped_mask::PM
 # end
 
-# function MDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
+# function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
 #     s = obs_to_scene(pomdp, o)
 #     action_sets = Vector{Vector{UrbanAction}}()
 #     np = 0

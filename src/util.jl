@@ -14,11 +14,10 @@ function evaluation_loop(mdp::MDP, policy::Policy; n_ep::Int64 = 1000, max_steps
     return rewards, steps, violations
 end
 
-function evaluation_loop(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_steps::Int64 = 500, rng::AbstractRNG = Base.GLOBAL_RNG)
+function evaluation_loop(pomdp::POMDP, policy::Policy, up::PreviousObservationUpdater; n_ep::Int64 = 1000, max_steps::Int64 = 500, rng::AbstractRNG = Base.GLOBAL_RNG)
     rewards = zeros(n_ep)
     steps = zeros(n_ep)
     violations = zeros(n_ep)
-    up = PreviousObservationUpdater()
     @showprogress for ep=1:n_ep
         s0 = initialstate(pomdp, rng)
         o0 = generate_o(pomdp, s0, rng)
@@ -32,10 +31,11 @@ function evaluation_loop(pomdp::POMDP, policy::Policy; n_ep::Int64 = 1000, max_s
     return rewards, steps, violations
 end
 
-function evaluate(pomdp::UrbanPOMDP, policy::Policy, max_steps::Int64, rng::AbstractRNG)
+
+
+function evaluate(pomdp::UrbanPOMDP, policy::Policy, up::PreviousObservationUpdater, max_steps::Int64, rng::AbstractRNG)
     s0 = initialstate(pomdp, rng)
     o0 = generate_o(pomdp, s0, rng)
-    up = PreviousObservationUpdater()
     b0 = initialize_belief(up, o0)
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
     hist = simulate(hr, pomdp, policy, up, b0, s0)
@@ -57,7 +57,7 @@ end
 
 function print_summary(rewards, steps, violations)
     @printf("Summary for %d episodes: \n", length(rewards))
-    @printf("Average reward: %.3f \n", mean(rewards))
-    @printf("Average # of steps: %.3f \n", mean(steps))
-    @printf("Average # of violations: %.3f \n", mean(violations)*100)
+    @printf("Average reward: %.3f +/- %.3f \n", mean(rewards), std(rewards))
+    @printf("Average # of steps: %.3f +/- %.3f \n", mean(steps), std(steps))
+    @printf("Average # of violations: %.3f +/- %.3f \n", mean(violations)*100, std(violations)*100)
 end

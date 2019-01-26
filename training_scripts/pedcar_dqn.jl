@@ -8,14 +8,16 @@ using AutomotiveDrivingModels
 using POMDPs
 using POMDPModelTools
 using POMDPPolicies
+using POMDPSimulators
+using BeliefUpdaters
 using GridInterpolations
 using DiscreteValueIteration
 using LocalApproximationValueIteration
 using AutomotiveSensors
 using AutomotivePOMDPs
-using MDPModelChecking
+using POMDPModelChecking
 using DeepQLearning
-using DeepRL
+using RLInterface
 using PedCar
 using Flux
 using ArgParse
@@ -61,16 +63,16 @@ s = ArgParseSettings()
 end
 parsed_args = parse_args(ARGS, s)
 
-include("../src/util.jl")
 include("../src/masking.jl")
 include("../src/masked_dqn.jl")
+include("../src/util.jl")
 
 # init mdp
 mdp = PedCarMDP(pos_res=2.0, vel_res=2., ped_birth=0.7, car_birth=0.7)
 init_transition!(mdp)
 
 # init safe policy
-@load "../pc_util_processed.jld2" qmat util pol
+@load "../pc_util_processed_low.jld2" qmat util pol
 safe_policy = ValueIterationPolicy(mdp, qmat, util, pol)
 
 # init mask
@@ -86,8 +88,8 @@ pomdp = UrbanPOMDP(env=mdp.env,
                    ego_goal = LaneTag(2, 1),
                    max_cars=1, 
                    max_peds=1, 
-                   car_birth=0.7, 
-                   ped_birth=0.7, 
+                   car_birth=0.3, 
+                   ped_birth=0.3, 
                    max_obstacles=0, # no fixed obstacles
                    lidar=false,
                    ego_start=20,
@@ -116,11 +118,26 @@ solver = DeepQLearningSolver(qnetwork=Chain(Dense(n_dims(pomdp), 32, relu), Dens
                              dueling = true,
                              logdir="drqn-log/"*parsed_args["logdir"],
                              max_episode_length = 100,
-                             exploration_policy = masked_linear_epsilon_greedy(parsed_args["max_steps"], parsed_args["eps_fraction"], parsed_args["eps_end"], mask),
-                             evaluation_policy = masked_evaluation(mask),
+                            #  exploration_policy = masked_linear_epsilon_greedy(parsed_args["max_steps"], parsed_args["eps_fraction"], parsed_args["eps_end"], mask),
+                            #  evaluation_policy = masked_evaluation(mask),
                              verbose = true,
                              rng = rng
                             )
 
-policy = solve(solver, pomdp)
+dqn_policy = solve(solver, pomdp)
 bson(solver.logdir*"model.bson", Dict(:qnetwork => solver.qnetwork))
+# qnetwork = BSON.load("../training_scripts/drqn-log/log12/model.bson")[:qnetwork]
+# dqn_policy = NNPolicy(pomdp, qnetwork, actions(pomdp), 1)
+# policy = MaskedNNPolicy(pomdp, dqn_policy, mask);
+policy = dqn_policy
+
+pomdp.action_cost = 0.
+pomdp.collision_cost = -1.0
+@time rewards_mask, steps_mask, violations_mask = evaluation_loop(pomdp, policy, PreviousObservationUpdater(), n_ep=100, max_steps=400, rng=rng);
+print_summary(rewards_mask, steps_mask, violations_mask)
+
+# DQN Evaluation to check consistency
+scores_eval = DeepQLearning.evaluation(solver.evaluation_policy, dqn_policy, POMDPEnvironment(pomdp),                                  
+                         1000,
+                         400,
+                         true)
