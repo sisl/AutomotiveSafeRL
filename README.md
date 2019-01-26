@@ -1,27 +1,46 @@
-# Safe Planning Under Uncertainty via Formal Methods for Autonomous Driving
+# Safe Planning Under Uncertainty for Autonomous Driving
 
 Experiments on safe planning under uncertainty for autonomous driving. 
-This code base combines reachability analysis and reinforcement learning to compute safe and efficient policies for autonomous vehicles
+This code base combines reachability analysis, reinforcement learning, and decomposition methods to compute safe and efficient policies for autonomous vehicles.
+
+## Installation
+
+To install all the dependencies, run the following in the Julia REPL:
+
+```julia 
+using Pkg
+Pkg.add(PackageSpec(url="https://github.com/sisl/Vec.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/Records.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/AutomotiveDrivingModels.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/AutoViz.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/AutoUrban.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/AutomotiveSensors.jl"))
+Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/RLInterface.jl"))
+Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/DeepQLearning.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/AutomotivePOMDPs.jl"))
+Pkg.add(PackageSpec(url="https://github.com/MaximeBouton/POMDPModelChecking.jl"))
+``` 
+
+## Folder structure
+
+- `src/` contains the implementation of the safe RL policy and the decomposition method.
+- `RNNFiltering/` contains data_generation and training_script for the ensemble RNN belief updater
+- `training_scripts/` contains training scripts for the safe RL and RL policies
+- `evaluation/` contains evaluation scripts to evaluate RL, safe RL, and baseline policies.
+- `notebooks/` contains jupyter notebook for visualization and debugging. 
+
 
 ## Code to run
 
-- `pedmdp_script.jl` compute the safety mask, run some evaluations and train a policy in the constrained action space for a scenario involving the ego vehicle and one pedestrian to avoid
-- `carmdp_script.jl` compute the safety mask, run some evaluations and train a policy in the constrained action space for a scenario involving the ego vehicle and one car to avoid
-- `pedmdp_training.jl` run DQN to train a policy (no prior reachability analysis), and evaluate the policy for a scenario involving the ego vehicle and one pedestrian to avoid
-- `carmdp_training.jl` run DQN to train a policy (no prior reachability analysis), and evaluate the policy for a scenario involving the ego vehicle and one car to avoid
-- `jointmdp_script.jl` load the safety masks for the car problem and the pedestrian problem, combine the two mask and train a policy in the constrained action space for a scenario involving the ego vehicle, one car and one pedestrian. 
-- `jointmdp_training.jl` run DQN to train a policy  (no prior reachability analysis), and evaluate the policy for a scenario involving the ego vehicle, one car and one pedestrian
+To visualize any of the policy use `notebooks/interactive_evaluation.ipynb`
 
-The following notebooks allows to interact with the code and visualize the trained policies and the safety mask: `ped_mdp.ipynb`, `car_mdp.ipynb`, `joint_problem.ipynb`.
+For a detailed description of the evaluation scenarios run `notebooks/evaluation_scenarios.ipynb`
 
-- `gridworld/gridworld.ipynb` contains an illustrative example of the training procedure on a gridworld problem
+Other notebooks are used for prototyping and debugging. 
 
 
-**/!\ the models in `mdp_models/` are deprecated and have been moved to AutomotivePOMDPs.jl`**
-
-## Dependencies
+## Main Dependencies
 
 - AutomotivePOMDPs.jl contains all the driving scenario and MDP models
-- MDPModelChecking.jl (storm model checker backend)
-- DeepQLearning.jl (tensorflow backend)
-
+- POMDPModelChecking.jl 
+- DeepQLearning.jl (Flux.jl backend)
