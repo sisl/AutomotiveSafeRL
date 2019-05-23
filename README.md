@@ -3,6 +3,8 @@
 Experiments on safe planning under uncertainty for autonomous driving. 
 This code base combines reachability analysis, reinforcement learning, and decomposition methods to compute safe and efficient policies for autonomous vehicles.
 
+**Reference**: M. Bouton, A. Nakhaei, K. Fujimura, and M. J. Kochenderfer, “Safe reinforcement learning with scene decomposition for navigating complex urban environments,” in IEEE Intelligent Vehicles Symposium (IV), 2019. 
+
 ## Installation
 
 To install all the dependencies, run the following in the Julia REPL:
