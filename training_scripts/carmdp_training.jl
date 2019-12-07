@@ -3,10 +3,19 @@
 rng = MersenneTwister(1)
 using AutomotivePOMDPs
 using MDPModelChecking
-using GridInterpolations, StaticArrays, POMDPs, POMDPToolbox, AutoViz, AutomotiveDrivingModels, Reel
-using DeepQLearning, DeepRL
+using GridInterpolations
+using StaticArrays
+using POMDPs
+using POMDPModelTools
+using AutoViz
+using AutomotiveDrivingModels
+using Reel
+using DeepQLearning
+using RLInterface
 using DiscreteValueIteration
-using ProgressMeter, Parameters, JLD
+using ProgressMeter
+using Parameters
+using JLD
 
 include("util.jl")
 

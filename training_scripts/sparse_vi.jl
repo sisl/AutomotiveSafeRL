@@ -1,20 +1,24 @@
+using Revise
 using Printf
 using Random
-using POMDPs, POMDPModelTools, DiscreteValueIteration
+using POMDPs
+using POMDPModelTools
+using POMDPPolicies
+using BeliefUpdaters
+using DiscreteValueIteration
 using POMDPSimulators
 using AutomotivePOMDPs, AutomotiveDrivingModels
 using BSON, StaticArrays
 using JLD2
 using FileIO
 using PedCar
-using MDPModelChecking
 using LocalApproximationValueIteration
 using ProgressMeter
 
 rng = MersenneTwister(1)
 
-include("src/masking.jl")
-include("src/util.jl")
+include(joinpath(@__DIR__, "../src/masking.jl"))
+include(joinpath(@__DIR__, "../src/util.jl"))
 
 
 params = UrbanParams(nlanes_main=1,
@@ -24,7 +28,7 @@ params = UrbanParams(nlanes_main=1,
                      stop_line = 22.0)
 env = UrbanEnv(params=params);
 
-mdp = PedCar.PedCarMDP(env=env, pos_res=2.0, vel_res=2.0, ped_birth=0.7, car_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
+mdp = PedCar.PedCarMDP(env=env, pos_res=3.0, vel_res=2.0, ped_birth=0.7, car_birth=0.7, ped_type=VehicleDef(AgentClass.PEDESTRIAN, 1.0, 3.0))
 init_transition!(mdp)
 # reachability analysis
 mdp.collision_cost = 0.

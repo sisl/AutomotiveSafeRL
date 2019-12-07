@@ -7,7 +7,14 @@ This code base combines reachability analysis, reinforcement learning, and decom
 
 ## Installation
 
-To install all the dependencies, run the following in the Julia REPL:
+For julia version >1.1, it is recommended to add the SISL registry and JuliaPOMDP registry first:
+```julia
+pkg> registry add https://github.com/sisl/Registry
+pkg> registry add https://github.com/JuliaPOMDP/Registry
+pkg> add https://github.com/MaximeBouton/PedCar.jl
+```
+
+To install all the dependencies manually, run the following in the Julia REPL:
 
 ```julia 
 using Pkg
