@@ -45,7 +45,25 @@ To visualize any of the policy use `notebooks/interactive_evaluation.ipynb`
 
 For a detailed description of the evaluation scenarios run `notebooks/evaluation_scenarios.ipynb`
 
-Other notebooks are used for prototyping and debugging. 
+Other notebooks are used for prototyping and debugging.
+
+All scripts used to run the experiments in the paper are available, most of them have command line arguments. Check those arguments to see what can be changed.
+
+**Solving for the safety mask using Model Checking**
+
+Run  `training_scripts/pedcar_vi.jl` to compute the safety mask using value iteration. *This part is computationally expensive and requires parallelization over many cores*.
+
+**Training an RL agent**
+
+Run  `training_scripts/pedcar_dqn.jl` to train an RL agent with or without the safety mask.
+
+**Training the belief updater**
+
+First, run the `RNNFiltering/generate_dataset.jl` to creat synthetic data to train the RNN updater on. 
+Then run `RNNFiltering/bagging_training.jl` to train one RNN. Look at the bash script `RNNFiltering/train.sh` to check how to properly set the seed. 
+
+**Evaluating the algorithm**
+Run  `evaluation/evaluation.jl` or `evaluation/parallel_evaluation.jl` to evaluate the algorithm (this requires a solved VI mask, trained RL policy and trained RNN filer).
 
 
 ## Main Dependencies

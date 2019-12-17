@@ -114,7 +114,7 @@ function BeliefUpdaters.initialize_belief(up::MultipleAgentsTracker, o0::UrbanOb
     b0 = update(up, empty_b, UrbanAction(0.), o0)
 end
 
-function process_single_entity_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Float64}, pres_threshold::Float64=0.5)
+function process_single_entity_prediction(pomdp::UrbanPOMDP, b::Vector{<:Real}, o::Vector{<:Real}, pres_threshold::Float64=0.5)
     n_features = pomdp.n_features
     b_ = zeros(3*n_features) # should be 12 (2 vehicles 1 obstacle)
     b_[1:4] = o[1:4] # ego state fully observable
@@ -250,12 +250,18 @@ struct SingleAgentBeliefOverlay <: SceneOverlay
     color::Colorant
 end
 
-SingleAgentBeliefOverlay(b::SingleAgentBelief;  color = MONOKAI["color4"]) = SingleAgentBeliefOverlay(b, color)
+SingleAgentBeliefOverlay(b::SingleAgentBelief;  color = AutoViz.MONOKAY["color4"]) = SingleAgentBeliefOverlay(b, color)
 
 function AutoViz.render!(rendermodel::RenderModel, overlay::SingleAgentBeliefOverlay, scene::Scene, env::OccludedEnv)
     for pred in overlay.b.predictions
         bel = [veh for veh in obs_to_scene(overlay.b.single_pomdp, pred) if veh.id != EGO_ID]
-        AutoViz.render!(rendermodel, GaussianSensorOverlay(sensor=GaussianSensor(), o=bel, color=overlay.color), scene, env) 
+        for veh in bel 
+            p = posg(veh.state)
+            add_instruction!(rendermodel, render_vehicle, 
+                             (p.x, p.y, p.θ, 
+                             veh.def.length, veh.def.width, overlay.color,ARGB(1.,1.,1.,0.),ARGB(1.,1.,1.,0.)))
+        end
+        # AutoViz.render!(rendermodel, GaussianSensorOverlay(sensor=GaussianSensor(), o=bel, color=overlay.color), scene, env) 
     end
 end
 
@@ -264,7 +270,7 @@ struct MultipleAgentsBeliefOverlay <: SceneOverlay
     color::Colorant
 end
 
-MultipleAgentsBeliefOverlay(b::MultipleAgentsBelief;color = MONOKAI["color4"]) = MultipleAgentsBeliefOverlay(b, color)
+MultipleAgentsBeliefOverlay(b::MultipleAgentsBelief;color = AutoViz.MONOKAY["color4"]) = MultipleAgentsBeliefOverlay(b, color)
 
 function AutoViz.render!(rendermodel::RenderModel, overlay::MultipleAgentsBeliefOverlay, scene::Scene, env::OccludedEnv)
     for (id, bel) in overlay.b.single_beliefs

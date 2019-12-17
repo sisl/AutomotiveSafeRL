@@ -60,7 +60,7 @@ save(policy_file, "util", policy.util, "qmat", policy.qmat, "pol",policy.policy)
 threshold = 0.99
 mdp.collision_cost = -1.0
 mask = SafetyMask(mdp, policy, threshold);
-rand_pol = MaskedEpsGreedyPolicy(mdp, 1.0, mask, rng);
+rand_pol = MaskedEpsGreedyPolicy(policy, 1.0, mask, rng);
 println("Evaluation in discretized environment: \n ")
 @time rewards_mask, steps_mask, violations_mask = evaluation_loop(mdp, rand_pol, n_ep=10000, max_steps=100, rng=rng);
 print_summary(rewards_mask, steps_mask, violations_mask)

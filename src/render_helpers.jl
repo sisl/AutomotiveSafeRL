@@ -1,4 +1,4 @@
-function animate_states(pomdp::M, states::Vector{S}, actions::Vector{A}, mask::SafetyMask;
+function PedCar.animate_states(pomdp::M, states::Vector{S}, actions::Vector{A}, mask::SafetyMask;
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 17.)) where {M,S,A}
     duration = length(states)*pomdp.ΔT
@@ -23,7 +23,7 @@ function animate_states(pomdp::M, states::Vector{S}, actions::Vector{A}, mask::S
     return duration, fps, render_states
 end
 
-function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, mask::SafetyMask;
+function PedCar.animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, mask::SafetyMask;
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 17.))
     duration = length(states)*pomdp.ΔT
@@ -57,7 +57,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
     return duration, fps, render_states
 end
 
-function animate_states(pomdp::UrbanPOMDP, 
+function PedCar.animate_states(pomdp::UrbanPOMDP, 
                         states::Vector{UrbanState}, 
                         actions::Vector{UrbanAction}, 
                         observations::Vector{Vector{Float64}},
@@ -121,7 +121,7 @@ function animate_states(pomdp::UrbanPOMDP,
     return duration, fps, render_states
 end
 
-function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Any};
+function PedCar.animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_actions::Vector{Any};
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 17.))
     duration = length(states)*pomdp.ΔT
@@ -154,7 +154,7 @@ function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::
     return duration, fps, render_states
 end
 
-function animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_acts_hist::Vector{Any}, mask::JointMask;
+function PedCar.animate_states(pomdp::UrbanPOMDP, states::Vector{UrbanState}, actions::Vector{UrbanAction}, safe_acts_hist::Vector{Any}, mask::JointMask;
                         overlays=SceneOverlay[IDOverlay()],
                         cam=StaticCamera(VecE2(0, -5.), 16.),
                         interp=true)
@@ -385,7 +385,7 @@ function AutomotivePOMDPs.animate_hist(pomdp::UrbanPOMDP,
     return duration, fps, render_rec
 end
 
-function animate_history(hist::POMDPHistory, pomdp::UrbanPOMDP;
+function animate_history(hist, pomdp::UrbanPOMDP;
                          state_overlays= x->SceneOverlay[],
                          action_overlays = x->SceneOverlay[],
                          obs_overlays = x->SceneOverlay[],
@@ -398,23 +398,23 @@ function animate_history(hist::POMDPHistory, pomdp::UrbanPOMDP;
                          cam=FitToContentCamera(0.),
                          sim_dt=0.1)
     env = pomdp.env 
-    duration = (length(hist.state_hist)-1)*sim_dt
+    duration = (length(state_hist(hist))-1)*sim_dt
     fps = Int(1/sim_dt)
     function render(t, dt)
         frame_index = Int(floor(t/dt)) + 1
-        s = hist.state_hist[frame_index+1]
-        a = hist.action_hist[frame_index]
-        o = hist.observation_hist[frame_index]
-        b = hist.belief_hist[frame_index + 1]
-        ai = hist.ainfo_hist[frame_index]
-        info = hist.info_hist[frame_index]
+        s = collect(state_hist(hist))[frame_index+1]
+        a = collect(action_hist(hist))[frame_index]
+        o = collect(observation_hist(hist))[frame_index]
+        b = collect(belief_hist(hist))[frame_index + 1]
+        ai = collect(ainfo_hist(hist))[frame_index]
+        # info = collect(info_hist(hist))[frame_index]
         overlays = SceneOverlay[]
         push!.(Ref(overlays), state_overlays(s))
         push!.(Ref(overlays), action_overlays(a))
         push!.(Ref(overlays), obs_overlays(o))
         push!.(Ref(overlays), belief_overlays(b))
         push!.(Ref(overlays), ainfo_overlays(ai))
-        push!.(Ref(overlays), info_overlays(info))
+        # push!.(Ref(overlays), info_overlays(info))
         push!.(Ref(overlays), extra_overlays)
         push!.(Ref(overlays), step_overlays(frame_index))
         AutoViz.render(s, env, overlays, cam=cam, car_colors=get_colors(s))

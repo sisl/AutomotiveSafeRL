@@ -13,7 +13,6 @@ using BeliefUpdaters
 using POMDPPolicies
 using POMDPSimulators
 using POMDPModelTools
-using POMDPModelChecking
 using LocalApproximationValueIteration
 using DiscreteValueIteration
 using RLInterface
@@ -104,10 +103,10 @@ function load_policies_and_environment(policyname::String, updatername::String, 
         car_models = Vector{Chain}(undef, n_models)
         ped_models = Vector{Chain}(undef, n_models)
         for i=1:n_models
-            car_models[i] = BSON.load("../RNNFiltering/model_car_$i.bson")[:model] 
-            Flux.loadparams!(car_models[i], BSON.load("../RNNFiltering/weights_car_$i.bson")[:weights])
-            ped_models[i] = BSON.load("../RNNFiltering/model_ped_$i.bson")[:model]
-            Flux.loadparams!(ped_models[i], BSON.load("../RNNFiltering/weights_ped_$i.bson")[:weights])
+            car_models[i] = BSON.load(joinpath(@__DIR__, "../RNNFiltering/pretrained/model_car_$i.bson"))[:model] 
+            # Flux.loadparams!(car_models[i], BSON.load("../RNNFiltering/weights_car_$i.bson")[:weights])
+            ped_models[i] = BSON.load(joinpath(@__DIR__, "../RNNFiltering/pretrained/model_ped_$i.bson"))[:model]
+            # Flux.loadparams!(ped_models[i], BSON.load("../RNNFiltering/weights_ped_$i.bson")[:weights])
         end
         pres_threshold = 0.3
         ref_updaters = Dict(AgentClass.PEDESTRIAN => SingleAgentTracker(ped_pomdp, ped_models, pres_threshold, VehicleDef()),
@@ -124,7 +123,7 @@ function load_policies_and_environment(policyname::String, updatername::String, 
         ego_model = get_ego_baseline_model(env)
         policy = EgoBaseline(pomdp, ego_model)
     elseif policyname == "masked-baseline"
-        @load "../pc_util_processed_low.jld2" qmat util pol
+        @load joinpath(@__DIR__, "../pretrained/pc_util_processed_low.jld2") qmat util pol
         safe_policy = ValueIterationPolicy(mdp, qmat, util, pol);
         threshold = 0.99
         mask = SafetyMask(mdp, safe_policy, threshold)
@@ -132,19 +131,19 @@ function load_policies_and_environment(policyname::String, updatername::String, 
         policy = MaskedEgoBaseline(pomdp, pedcar_pomdp, ego_model, mask, UrbanAction[])
     elseif policyname == "masked-RL"
         threshold = 0.99
-        @load "../training_scripts/pc_util_processed_low.jld2" qmat util pol
+        @load joinpath(@__DIR__, "../pretrained/pc_util_processed_low.jld2") qmat util pol
         safe_policy = ValueIterationPolicy(mdp, qmat, util, pol);
         mask = SafetyMask(mdp, safe_policy, threshold)
-        qnetwork = BSON.load("../training_scripts/drqn-log/log20/model.bson")[:qnetwork]
-        weights = BSON.load("../training_scripts/drqn-log/log20/qnetwork.bson")[:qnetwork]
-        Flux.loadparams!(qnetwork, weights)
+        qnetwork = BSON.load(joinpath(@__DIR__, "../pretrained/masked-rl/model.bson"))[:model]
+        # weights = BSON.load(joinpath(@__DIR__, "../pretrained/masked-rl/qnetwork.bson"))[:qnetwork]
+        # Flux.loadparams!(qnetwork, weights)
         dqn_policy = NNPolicy(pedcar_pomdp, qnetwork, actions(pedcar_pomdp), 1)
         masked_policy = MaskedNNPolicy(pedcar_pomdp, dqn_policy, mask)
         policy = DecMaskedPolicy(masked_policy, mask, pedcar_pomdp, (x,y) -> min.(x,y))
     elseif policyname == "RL"
-        qnetwork = BSON.load("../training_scripts/drqn-log/rl5model.bson")[:qnetwork]
-        weights = BSON.load("../training_scripts/drqn-log/rl5qnetwork.bson")[:qnetwork]
-        Flux.loadparams!(qnetwork, weights)
+        qnetwork = BSON.load(joinpath(@__DIR__, "../pretrained/rl/model.bson"))[:model]
+        # weights = BSON.load(joinpath(@__DIR__, "../pretrained/rl/qnetwork.bson"))[:qnetwork]
+        # Flux.loadparams!(qnetwork, weights)
         dqn_policy = NNPolicy(pedcar_pomdp, qnetwork, actions(pedcar_pomdp), 1)
         policy = DecPolicy(dqn_policy, pedcar_pomdp, (x,y) -> min.(x,y))
     end
@@ -178,20 +177,20 @@ end
 
 function run_sim(pomdp::UrbanPOMDP, policy::Policy, up::Updater, initialscene::Function, rng::AbstractRNG, max_steps=400)
     s0 = initialscene(pomdp, rng)
-    o0 = generate_o(pomdp, s0, rng)
+    o0 = initialobs(pomdp, s0, rng)
     b0 = initialize_belief(up, o0)
     hr = HistoryRecorder(max_steps=max_steps, rng=rng)
-    hist = simulate(hr, pomdp, policy, up, b0, s0)
+    hist = POMDPs.simulate(hr, pomdp, policy, up, b0, s0)
     return hist
 end
 
 function find_collision(pomdp::UrbanPOMDP, policy::Policy, up::Updater, initialscene::Function, rng::AbstractRNG; max_steps=400, n_ep=10000)
     @showprogress for ep=1:n_ep
         s0 = initialscene(pomdp, rng)
-        o0 = generate_o(pomdp, s0, rng)
+        o0 = initialobs(pomdp, s0, rng)
         b0 = initialize_belief(up, o0)
         hr = HistoryRecorder(max_steps=max_steps, rng=rng)
-        hist = simulate(hr, pomdp, policy, up, b0, s0);
+        hist = POMDPs.simulate(hr, pomdp, policy, up, b0, s0);
         if is_crash(hist.state_hist[end]) || (sum(hist.reward_hist .< 0.) != 0.)
             println("Crash after $ep simulations")
             return hist

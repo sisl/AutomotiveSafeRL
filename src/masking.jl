@@ -178,7 +178,7 @@ function safe_actions(mask::SafetyMask{M, LocalApproximationValueIterationPolicy
     return safe_actions(mask, s)
 end
 
-function actionvalues(policy::LocalApproximationValueIterationPolicy, s::S) where S <: Union{PedMDPState, PedCarMDPState}
+function POMDPPolicies.actionvalues(policy::LocalApproximationValueIterationPolicy, s::S) where S <: Union{PedMDPState, PedCarMDPState}
     if !s.crash && isterminal(policy.mdp, s)
         return ones(n_actions(policy.mdp))
     else

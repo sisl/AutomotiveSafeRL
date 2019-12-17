@@ -157,7 +157,7 @@ function POMDPs.action(pol::RandomHoldPolicy, s)
     return pol.current_action 
 end
 
-function process_prediction(pomdp::UrbanPOMDP, b::Vector{Float64}, o::Vector{Float64}, pres_threshold::Float64=0.5)
+function process_prediction(pomdp::UrbanPOMDP, b::Vector{<:Real}, o::Vector{<:Real}, pres_threshold::Float64=0.5)
     n_features = 4
     n_obstacles = pomdp.max_obstacles
     b_ = zeros(n_dims(pomdp)) # should be 12 + obstacles

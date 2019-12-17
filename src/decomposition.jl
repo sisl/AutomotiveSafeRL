@@ -42,7 +42,7 @@ function POMDPPolicies.action(p::DecPolicy, b::Dict)
     end   
 end
 
-function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
+function safe_actions(pomdp::UrbanPOMDP, mask::SafetyMask{PedCarMDP, P}, b::Dict{I, PedCarRNNBelief}) where {P <: Policy,I}
     safe_acts = Dict{Tuple{Int64, Int64}, Vector{UrbanAction}}()
     for (ids, bel) in b
         safe_acts[(ids[2], ids[1])] = safe_actions(pomdp, mask, bel, ids[2], ids[1]) 
@@ -168,8 +168,7 @@ function evaluation_loop(pomdp::UrbanPOMDP, policy::Policy, up::MultipleAgentsTr
     violations = zeros(n_ep)
     @showprogress for ep=1:n_ep
         s0 = initialstate(pomdp, rng)
-        a0 = UrbanAction(0.)
-        o0 = generate_o(pomdp,s0, a0, s0, rng)
+        o0 = initialobs(pomdp,s0, rng)
         b0 = initialize_belief(up, o0)
         hr = HistoryRecorder(max_steps=100, rng=rng)
         hist = simulate(hr, pomdp, policy, up, b0, s0);
@@ -188,7 +187,7 @@ end
 #     ped_mask::PM
 # end
 
-# function POMDPModelChecking.safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
+# function safe_actions(pomdp::UrbanPOMDP, mask::DecomposedMask, o::UrbanObs)
 #     s = obs_to_scene(pomdp, o)
 #     action_sets = Vector{Vector{UrbanAction}}()
 #     np = 0
