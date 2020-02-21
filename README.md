@@ -12,6 +12,7 @@ For julia version >1.1, it is recommended to add the SISL registry and JuliaPOMD
 pkg> registry add https://github.com/sisl/Registry
 pkg> registry add https://github.com/JuliaPOMDP/Registry
 pkg> add https://github.com/MaximeBouton/PedCar.jl
+pkg> add https://github.com/MaximeBouton/AutomotiveSafeRL
 ```
 
 To install all the dependencies manually, run the following in the Julia REPL:
